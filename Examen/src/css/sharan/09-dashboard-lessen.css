@@ -1,0 +1,107 @@
+﻿/* ================================================================
+   11. DASHBOARD.PHP — LESKAARTEN
+   Lijst van lessen met datum, info, auto en actieknoppen.
+   ================================================================ */
+
+/* Verticale lijst van leskaarten */
+.les-lijst {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+/* Basisstijl van een leskaart */
+.les-kaart {
+    background: white;
+    border: 2px solid #d0d8e4;
+    border-left: 5px solid #1b2940;
+    padding: 14px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+/* Variant: les is vandaag — gele linkerbalk + lichtgeel achtergrond */
+.les-kaart.vandaag {
+    border-left-color: #f59e0b;
+    background: #fffbeb;
+}
+
+/* Variant: les is al geweest — grijs en doorzichtig */
+.les-kaart.verleden {
+    border-left-color: #9ca3af;
+    opacity: .7;
+}
+
+/* Donkerblauw datumblok links in de leskaart */
+.les-datum-blok {
+    text-align: center;
+    min-width: 52px;
+    background: #1b2940;
+    color: white;
+    padding: 8px 10px;
+}
+
+.les-datum-blok .dag      { font-size: 22px; font-weight: bold; line-height: 1; }
+.les-datum-blok .maandnaam { font-size: 10px; text-transform: uppercase; margin-top: 2px; }
+
+/* Middelste kolom met lesdetails */
+.les-info              { flex: 1; min-width: 180px; }
+.les-info h4           { margin: 0 0 4px 0; font-size: 14px; color: #1b2940; }
+.les-info p            { margin: 2px 0; font-size: 12px; color: #555; }
+
+/* Tijdstipbadge binnen lesinfo */
+.les-info .tijd-badge {
+    display: inline-block;
+    background: #1b2940;
+    color: white;
+    font-size: 11px;
+    padding: 2px 8px;
+    margin-bottom: 6px;
+}
+
+/* Rechterkolom: autoinformatie en eventuele wijzigreden */
+.les-extra {
+    min-width: 160px;
+    background: #f8f9ff;
+    border: 1px solid #d0d8e4;
+    padding: 8px 12px;
+    font-size: 11px;
+    color: #555;
+}
+
+.les-extra p      { margin: 2px 0; }
+.les-extra strong { color: #1b2940; }
+
+/* Rij met wijzig/annuleer knoppen onderaan leskaart */
+.les-acties {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Waarschuwingsbadge voor studenten met een beperking */
+.tag-beperking {
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    color: #92400e;
+    font-size: 10px;
+    padding: 2px 6px;
+    font-weight: bold;
+}
+
+/* Lege staat: geen lessen in die maand */
+.geen-lessen {
+    background: white;
+    border: 2px dashed #ccc;
+    padding: 30px;
+    text-align: center;
+    color: #888;
+    font-size: 13px;
+}
+
+

@@ -1,0 +1,171 @@
+﻿/* ================================================================
+   17. LES_INROOSTEREN.PHP
+   4-stappen flow voor studenten om een nieuwe les in te plannen.
+   Stap 1: datum, 2: instructeur, 3: tijdstip, 4: details.
+   ================================================================ */
+
+/* Begrensde breedte voor de inroosterwizard */
+.inrooster-wrap {
+    max-width: 620px;
+    margin: 0 auto;
+}
+
+/* Stappenbalk bovenaan de wizard */
+.stappen {
+    display: flex;
+    gap: 0;
+    margin-bottom: 20px;
+    border: 2px solid #1b2940;
+}
+
+/* Individuele stap in de balk */
+.stap {
+    flex: 1;
+    padding: 10px 6px;
+    text-align: center;
+    font-size: 10px;
+    font-weight: bold;
+    background: #f0f0f0;
+    color: #888;
+    border-right: 2px solid #1b2940;
+}
+
+.stap:last-child { border-right: none; }
+
+/* Actieve stap: donkerblauw */
+.stap.actief { background: #1b2940; color: white; }
+
+/* Voltooide stap: groen */
+.stap.klaar  { background: #d4edda; color: #155724; }
+
+/* Stapnummer bovenin de stap */
+.stap .nr { display: block; font-size: 14px; margin-bottom: 2px; }
+
+/* Wrapper voor de datumselectie */
+.datum-wrap {
+    background: white;
+    border: 2px solid #1b2940;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+/* Lijst van instructeurskaarten */
+.instr-kaarten {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+/* Klikbare instructeurskaart */
+.instr-kaart {
+    background: white;
+    border: 2px solid #d0d8e4;
+    border-left: 5px solid #1b2940;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all .15s;
+}
+
+.instr-kaart:hover   { border-color: #1b2940; box-shadow: 3px 3px 0 #1b2940; }
+
+/* Geselecteerde instructeurskaart */
+.instr-kaart.gekozen { border-color: #1b2940; background: #f0f4ff; box-shadow: 3px 3px 0 #1b2940; }
+
+/* Volle instructeur: rood en niet klikbaar */
+.instr-kaart.vol     { border-left-color: #dc3545; opacity: .6; cursor: not-allowed; }
+
+/* Naam in instructeurskaart */
+.instr-naam  { font-weight: bold; font-size: 14px; color: #1b2940; margin-bottom: 4px; }
+
+/* Beschikbaarheidsmeta in instructeurskaart */
+.instr-meta  { font-size: 11px; color: #666; margin-bottom: 8px; }
+
+/* Omschrijving/bio van de instructeur */
+.instr-omschr { font-size: 11px; color: #888; font-style: italic; margin-bottom: 8px; }
+
+/* Rij gekleurde blokjes die laten zien hoeveel plekken vrij/bezet zijn */
+.plek-balk {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+/* Individueel plek-blokje */
+.plek-blok {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #ccc;
+    background: #f0f0f0;
+}
+
+.plek-blok.bezet { background: #f8d7da; border-color: #dc3545; }
+.plek-blok.vrij  { background: #d4edda; border-color: #28a745; }
+
+/* Flexrij van klikbare tijdslot-knoppen */
+.slot-knoppen {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+/* Klikbare tijdslotknop (bijv. 08:00–10:00) */
+.slot-knop {
+    padding: 6px 10px;
+    font-size: 11px;
+    font-family: Arial;
+    font-weight: bold;
+    border: 2px solid #1b2940;
+    background: white;
+    cursor: pointer;
+    transition: all .1s;
+    touch-action: manipulation;
+}
+
+.slot-knop:hover  { background: #1b2940; color: white; }
+
+/* Geselecteerde tijdslotknop */
+.slot-knop.actief { background: #1b2940; color: white; }
+
+/* Bezet tijdslot: grijs en niet klikbaar */
+.slot-knop.bezet  { background: #f0f0f0; border-color: #ccc; color: #aaa; cursor: not-allowed; text-decoration: line-through; }
+
+/* Stap-4 formulier: verborgen totdat een tijdstip gekozen is */
+.formulier-sectie {
+    background: white;
+    border: 2px solid #1b2940;
+    padding: 20px;
+    display: none;
+}
+
+/* Zichtbaar zodra tijdstip gekozen is */
+.formulier-sectie.zichtbaar { display: block; }
+
+/* Donkerblauwe samenvattingsbalk bovenin het detailformulier */
+.keuze-samenvatting {
+    background: #1b2940;
+    color: white;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: space-between;
+}
+
+/* Grote waarde in samenvattingsbalk */
+.keuze-samenvatting strong { display: block; font-size: 15px; }
+
+/* Lege staat als er geen instructeurs beschikbaar zijn */
+.geen-instructeurs {
+    background: white;
+    border: 2px dashed #ccc;
+    padding: 24px;
+    text-align: center;
+    color: #888;
+    font-size: 13px;
+}
+
+

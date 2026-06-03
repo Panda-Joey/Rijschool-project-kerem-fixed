@@ -1,0 +1,46 @@
+﻿/* ================================================================
+   20. RESPONSIVE — DESKTOP (min 768px)
+   Volledig formaat: grote kalender, zichtbare lesteksten.
+   ================================================================ */
+@media (min-width: 768px) {
+
+    h1 { font-size: 20px; margin-bottom: 15px; }
+
+    .top-buttons { gap: 12px; margin-bottom: 20px; }
+    .nav-btn { padding: 15px; font-size: 13px; }
+
+    /* Kalender volledig formaat */
+    .days-header { padding: 6px; gap: 3px; }
+    .days-header div { font-size: 12px; padding: 8px; }
+    .calendar-grid { gap: 3px; padding: 6px; }
+    .day { min-height: 90px; padding: 5px; }
+    .date { font-size: 13px; margin-bottom: 6px; }
+
+    /* Lestekst volledig zichtbaar (geen afkappen) */
+    .lesson {
+        font-size: 11px;
+        padding: 3px 6px;
+        margin-bottom: 3px;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: unset;
+    }
+
+    /* Aankomende leskaarten */
+    .lesson-card { margin: 12px; padding: 14px 18px; }
+    .lesson-card h4 { font-size: 14px; }
+    .lesson-card p  { font-size: 12px; }
+    .buttons { flex-direction: row; gap: 8px; }
+    .edit, .cancel { padding: 8px 14px; font-size: 12px; }
+
+    /* Modal meer ruimte van boven */
+    .modal-content { margin: 80px auto; padding: 25px; }
+
+    /* Dashboard leskaarten: vaste breedte kolommen */
+    .les-datum-blok { min-width: 52px; }
+    .les-extra      { min-width: 160px; }
+    .les-acties .edit,
+    .les-acties .cancel { padding: 8px 14px; }
+}
+
+

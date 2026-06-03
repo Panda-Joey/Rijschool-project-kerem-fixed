@@ -1,0 +1,35 @@
+﻿/* ================================================================
+   4. NAVIGATIE — TOP BUTTONS
+   Gebruikt op: alle pagina's als navigatiebalk.
+   Op mobiel: 2 kolommen grid. Op tablet+: flex rij.
+   ================================================================ */
+.top-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+/* Elke navigatieknop, ook als <a> of <div> */
+.nav-btn {
+    padding: 12px 6px;
+    background: white;
+    border: 2px solid #1b2940;
+    text-align: center;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 12px;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    touch-action: manipulation;
+}
+
+/* Actieve of hover staat van navigatieknop */
+.nav-btn.active,
+.nav-btn:hover {
+    background: #1b2940;
+    color: white;
+}
+
+

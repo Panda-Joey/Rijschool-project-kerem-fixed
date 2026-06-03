@@ -1,0 +1,54 @@
+﻿/* ================================================================
+   AANVULLINGEN — Kalender dashboard-stijl + inroosteren
+   ================================================================ */
+
+/* Dag-vandaag: lichtgele achtergrond in kalender */
+.day.dag-vandaag {
+    background: #fffbeb;
+    border-left-color: #f59e0b;
+}
+
+/* Stip naast dagnummer als indicator voor vandaag */
+.vandaag-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: #f59e0b;
+    border-radius: 50%;
+    margin-right: 3px;
+    vertical-align: middle;
+}
+
+/* Header bovenop de aankomende-lessenlijst met knop */
+.upcoming-header {
+    background: #1b2940;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+}
+
+.upcoming-header h3 {
+    color: white;
+    margin: 0;
+    font-size: 13px;
+}
+
+/* Knop "+ Les inplannen" / "+ Nieuwe les" in upcoming header */
+.btn-nieuw-les {
+    background: white;
+    color: #1b2940;
+    border: 2px solid white;
+    padding: 5px 12px;
+    font-size: 11px;
+    font-weight: bold;
+    text-decoration: none;
+    font-family: Arial, sans-serif;
+    white-space: nowrap;
+}
+
+.btn-nieuw-les:hover {
+    background: #1b2940;
+    color: white;
+    border-color: rgba(255,255,255,.4);
+}

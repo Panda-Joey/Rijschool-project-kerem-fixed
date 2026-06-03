@@ -1,0 +1,48 @@
+﻿/* ================================================================
+   18. MODAL
+   Pop-up met lesdetails, geopend via kalender-lesblokjes.
+   ================================================================ */
+
+/* Donkere overlay achter de modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,.6);
+    overflow-y: auto;
+}
+
+/* Witte kaart in het midden van de overlay */
+.modal-content {
+    background: white;
+    width: 92%;
+    max-width: 420px;
+    margin: 40px auto;
+    padding: 20px;
+    position: relative;
+    font-size: 13px;
+    border-top: 4px solid #1b2940;
+}
+
+.modal-content p { margin: 6px 0; line-height: 1.5; }
+
+/* Sluitknop rechtsboven in de modal */
+.close {
+    position: absolute;
+    right: 12px;
+    top: 8px;
+    font-size: 26px;
+    cursor: pointer;
+    padding: 4px 8px;
+    touch-action: manipulation;
+    line-height: 1;
+    color: #1b2940;
+}
+
+.close:hover { background: #f0f4ff; }
+
+

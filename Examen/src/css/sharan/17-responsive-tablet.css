@@ -1,0 +1,36 @@
+﻿/* ================================================================
+   19. RESPONSIVE — TABLET (min 480px)
+   Navigatie in één rij, kalender en kaarten iets ruimer.
+   ================================================================ */
+@media (min-width: 480px) {
+
+    body { padding: 10px; }
+
+    /* Navigatie: één rij in plaats van 2×2 grid */
+    .top-buttons {
+        display: flex;
+        gap: 8px;
+    }
+
+    .nav-btn { flex: 1; padding: 12px; }
+
+    /* Kalender dagnamen groter */
+    .days-header div { font-size: 11px; padding: 6px 3px; }
+
+    /* Dagcellen iets hoger */
+    .day { min-height: 65px; padding: 3px; }
+    .date { font-size: 11px; margin-bottom: 4px; }
+    .lesson { font-size: 9px; padding: 2px 4px; }
+
+    /* Leskaarten in aankomende-lessenlijst: horizontaal */
+    .lesson-card {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .buttons { flex-direction: column; width: auto; min-width: 90px; }
+    .edit, .cancel { padding: 7px 12px; }
+}
+
+

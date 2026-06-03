@@ -1,0 +1,94 @@
+﻿/* ================================================================
+   7. KNOPPEN — GEDEELD
+   Gebruikt op: alle formulierpagina's en leskaarten.
+   ================================================================ */
+
+/* Flexrij voor meerdere knoppen naast elkaar */
+.btn-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Primaire opslaan knop (donkerblauw) */
+.btn-opslaan {
+    flex: 1;
+    background: #1b2940;
+    color: white;
+    border: none;
+    padding: 12px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    text-align: center;
+}
+
+.btn-opslaan:hover { background: #243a55; }
+
+/* Terug knop (wit met blauwe rand) */
+.btn-terug {
+    flex: 1;
+    background: white;
+    color: #1b2940;
+    border: 2px solid #1b2940;
+    padding: 12px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    text-decoration: none;
+    display: block;
+    font-weight: bold;
+}
+
+.btn-terug:hover { background: #f0f4ff; }
+
+/* Annuleer knop (rood, alleen op annuleer.php) */
+.btn-annuleer {
+    flex: 1;
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 12px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+}
+
+.btn-annuleer:hover { background: #b02a37; }
+
+/* Wijzig knop in leskaarten (donkerblauw) */
+.edit {
+    background: #1b2940;
+    color: white;
+    border: 2px solid #1b2940;
+    padding: 6px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    touch-action: manipulation;
+}
+
+.edit:hover { background: #243a55; }
+
+/* Annuleer knop in leskaarten (wit met blauwe rand) */
+.cancel {
+    background: white;
+    color: #1b2940;
+    border: 2px solid #1b2940;
+    padding: 6px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    touch-action: manipulation;
+}
+
+.cancel:hover { background: #f8d7da; border-color: #dc3545; color: #dc3545; }
+
+

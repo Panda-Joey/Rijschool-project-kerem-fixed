@@ -1,0 +1,91 @@
+﻿/* ================================================================
+   6. FORMULIEREN — GEDEELD
+   Gebruikt op: login.php, wijzig.php, annuleer.php,
+                les_inroosteren.php, beschikbaarheid.php.
+   ================================================================ */
+
+/* Wrapper per formulierveld met label + input */
+.form-group {
+    margin-bottom: 16px;
+}
+
+/* Label boven elk formulierveld */
+.form-group label {
+    display: block;
+    font-weight: bold;
+    font-size: 12px;
+    margin-bottom: 5px;
+    color: #1b2940;
+}
+
+/* Gedeelde stijl voor alle invoervelden */
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #ccc;
+    font-size: 13px;
+    font-family: Arial, sans-serif;
+    box-sizing: border-box;
+    transition: border-color .15s;
+}
+
+/* Focusstatus: blauw kader */
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    border-color: #1b2940;
+    outline: none;
+}
+
+/* Textarea specifiek: verticaal resizable */
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Rood kader als verplicht veld leeg is bij submit */
+.form-group textarea.leeg,
+.form-group input.leeg {
+    border-color: #dc3545;
+}
+
+/* Foutmelding die verschijnt onder een leeg verplicht veld */
+.verplicht-melding {
+    color: #dc3545;
+    font-size: 11px;
+    margin-top: 4px;
+    display: none;
+}
+
+/* Tekenteller onder textarea (bijv. reden voor annulering) */
+.reden-counter {
+    font-size: 10px;
+    color: #888;
+    text-align: right;
+    margin-top: 3px;
+}
+
+/* Info-blok met huidige lesgegevens boven wijzig/annuleer formulier */
+.les-info {
+    background: #f0f4ff;
+    border: 1px solid #8db6ff;
+    padding: 10px 14px;
+    margin-bottom: 20px;
+    font-size: 12px;
+}
+
+.les-info p { margin: 3px 0; }
+
+/* Vorige reden tonen in les-info blok */
+.reden-huidig {
+    background: #fff8e1;
+    border: 1px solid #ffc107;
+    padding: 8px 12px;
+    font-size: 11px;
+    margin-top: 6px;
+    color: #555;
+}
+
+

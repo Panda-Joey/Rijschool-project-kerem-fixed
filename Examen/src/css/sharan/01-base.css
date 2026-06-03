@@ -1,0 +1,54 @@
+﻿/* ================================================================
+   1. RESET & BASIS
+   ================================================================ */
+
+/* Zorg dat padding/border meegeteld worden in breedte */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 10px;
+    background: #efefef;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    color: #111;
+}
+
+h1 {
+    font-size: 16px;
+    margin: 0 0 10px 0;
+    color: #1b2940;
+}
+
+a { color: inherit; }
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #f0f0f0; }
+::-webkit-scrollbar-thumb { background: #1b2940; }
+
+/* Slide-in animatie (gedeeld door meerdere componenten) */
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+
+/* ================================================================
+   2. TYPOGRAFIE & KLEUREN
+   Kleurconventies zijn vastgelegd in de header-comment bovenaan.
+   ================================================================ */
+
+
+/* ================================================================
+   3. LAYOUT — CONTAINER
+   Centreer de inhoud met een max-breedte.
+   ================================================================ */
+.container {
+    max-width: 1100px;
+    margin: auto;
+}
+
+

@@ -1,0 +1,20 @@
+/* Sharan CSS split: keep same order */
+@import url("css/sharan/01-base.css");
+@import url("css/sharan/02-navigation.css");
+@import url("css/sharan/03-messages.css");
+@import url("css/sharan/04-forms.css");
+@import url("css/sharan/05-buttons.css");
+@import url("css/sharan/06-login.css");
+@import url("css/sharan/07-dashboard-header-stats.css");
+@import url("css/sharan/08-dashboard-next-lesson-month-nav.css");
+@import url("css/sharan/09-dashboard-lessen.css");
+@import url("css/sharan/10-calendar.css");
+@import url("css/sharan/11-upcoming-lessons.css");
+@import url("css/sharan/12-wijzig.css");
+@import url("css/sharan/13-annuleer.css");
+@import url("css/sharan/14-beschikbaarheid.css");
+@import url("css/sharan/15-les-inroosteren.css");
+@import url("css/sharan/16-modal.css");
+@import url("css/sharan/17-responsive-tablet.css");
+@import url("css/sharan/18-responsive-desktop.css");
+@import url("css/sharan/19-extras.css");

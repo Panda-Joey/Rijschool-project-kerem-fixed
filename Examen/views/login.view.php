@@ -1,0 +1,117 @@
+<?php
+/**
+ * Login-scherm — pas hier het uiterlijk aan.
+ * Logica & accounts: includes/login-page.php, includes/auth.php, config/app.php
+ */
+?>
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inloggen — <?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></title>
+    <link rel="stylesheet" href="<?= htmlspecialchars(app_url('assets/css/login.css'), ENT_QUOTES, 'UTF-8') ?>">
+</head>
+<body>
+    <?php $active = 'login'; require __DIR__ . '/partials/header.php'; ?>
+
+    <main class="page page--with-header">
+        <div class="card">
+            <div class="card-header">
+                <h1>Inloggen</h1>
+                <p>Welkom bij <?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></p>
+            </div>
+            <div class="card-body">
+                    <div class="error-slot" aria-live="polite">
+                        <div class="error<?= $error === '' ? ' error--hidden' : '' ?>">
+                            <?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?>
+                        </div>
+                    </div>
+
+                    <form method="post" action="<?= htmlspecialchars(app_url('login.php'), ENT_QUOTES, 'UTF-8') ?>">
+                        <div class="field">
+                            <label for="email">Email</label>
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                value="<?= htmlspecialchars($_POST['email'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                required
+                                autocomplete="email"
+                            >
+                        </div>
+                        <div class="field">
+                            <label for="password">Wachtwoord</label>
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                required
+                                autocomplete="current-password"
+                            >
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Inloggen</button>
+                    </form>
+
+                    <a href="<?= htmlspecialchars(app_url(), ENT_QUOTES, 'UTF-8') ?>" class="btn btn-secondary btn-link">Terug</a>
+
+                    <?php if (ENABLE_TEST_LOGIN): ?>
+                        <div class="test-box">
+                            <p class="test-box__title">Test — direct inloggen</p>
+                            <div class="test-box__buttons">
+                                <div class="test-user">
+                                    <a href="<?= htmlspecialchars(app_url('login.php?test=leerling'), ENT_QUOTES, 'UTF-8') ?>" class="btn btn-test">Log in als Leerling</a>
+                                    <div class="test-user__creds">
+                                        <span><strong>Email:</strong> <code>leerling@rijschool.nl</code></span>
+                                        <span><strong>Wachtwoord:</strong> <code>wachtwoord123</code></span>
+                                        <button type="button" class="copy-btn" data-copy="leerling@rijschool.nl">Kopieer mail</button>
+                                        <button type="button" class="copy-btn" data-copy="wachtwoord123">Kopieer wachtwoord</button>
+                                    </div>
+                                </div>
+
+                                <div class="test-user">
+                                    <a href="<?= htmlspecialchars(app_url('login.php?test=instructeur'), ENT_QUOTES, 'UTF-8') ?>" class="btn btn-test">Log in als Instructeur</a>
+                                    <div class="test-user__creds">
+                                        <span><strong>Email:</strong> <code>instructeur@rijschool.nl</code></span>
+                                        <span><strong>Wachtwoord:</strong> <code>wachtwoord123</code></span>
+                                        <button type="button" class="copy-btn" data-copy="instructeur@rijschool.nl">Kopieer mail</button>
+                                        <button type="button" class="copy-btn" data-copy="wachtwoord123">Kopieer wachtwoord</button>
+                                    </div>
+                                </div>
+
+                                <div class="test-user">
+                                    <a href="<?= htmlspecialchars(app_url('login.php?test=eigenaar'), ENT_QUOTES, 'UTF-8') ?>" class="btn btn-test">Log in als Eigenaar</a>
+                                    <div class="test-user__creds">
+                                        <span><strong>Email:</strong> <code>eigenaar@rijschool.nl</code></span>
+                                        <span><strong>Wachtwoord:</strong> <code>wachtwoord123</code></span>
+                                        <button type="button" class="copy-btn" data-copy="eigenaar@rijschool.nl">Kopieer mail</button>
+                                        <button type="button" class="copy-btn" data-copy="wachtwoord123">Kopieer wachtwoord</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+            </div>
+        </div>
+    </main>
+
+    <?php if (ENABLE_TEST_LOGIN): ?>
+        <script>
+            document.addEventListener('click', async (e) => {
+                const btn = e.target && e.target.closest && e.target.closest('.copy-btn');
+                if (!btn) return;
+                const text = btn.getAttribute('data-copy') || '';
+                try {
+                    await navigator.clipboard.writeText(text);
+                    const old = btn.textContent;
+                    btn.textContent = 'Gekopieerd';
+                    setTimeout(() => (btn.textContent = old), 900);
+                } catch (_) {
+                    // clipboard kan geblokkeerd zijn; dan doet de knop niets
+                }
+            });
+        </script>
+    <?php endif; ?>
+</body>
+</html>

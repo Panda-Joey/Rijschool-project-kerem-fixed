@@ -1,0 +1,44 @@
+﻿/* ================================================================
+   13. INDEX.PHP — AANKOMENDE LESSEN
+   Lijst onder de kalender met kaartjes per les.
+   Zelfde stijl als dashboard leskaarten.
+   ================================================================ */
+
+/* Container voor de aankomende-lessenlijst */
+.upcoming {
+    margin-top: 12px;
+    background: white;
+    border: 2px solid #1b2940;
+}
+
+/* Blauwe koptitel van de aankomende-lessenlijst */
+.upcoming h3 {
+    background: #1b2940;
+    color: white;
+    margin: 0;
+    padding: 10px 16px;
+    font-size: 13px;
+}
+
+/* Individueel leskaartje in de aankomende-lessenlijst */
+.lesson-card {
+    margin: 8px;
+    padding: 10px 14px;
+    border: 2px solid #d0d8e4;
+    border-left: 5px solid #1b2940;
+    background: #f8fbff;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.lesson-card h4 { margin: 0 0 3px 0; font-size: 13px; color: #1b2940; }
+.lesson-card p  { margin: 2px 0; font-size: 12px; }
+
+/* Knoprij in een aankomende-lessenkaartje */
+.buttons {
+    display: flex;
+    gap: 8px;
+}
+
+

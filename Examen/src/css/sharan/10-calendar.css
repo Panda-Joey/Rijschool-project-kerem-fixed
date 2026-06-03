@@ -1,0 +1,140 @@
+﻿/* ================================================================
+   12. INDEX.PHP — KALENDER
+   Zelfde stijl als het dashboard (leskaarten, maandnav, etc.).
+   Kalender toont lessen per dag in een 7-koloms grid.
+   ================================================================ */
+
+/* Kalender container */
+.calendar {
+    background: white;
+    border: 2px solid #1b2940;
+}
+
+/* Blauwe headerbalk van de kalender met maandnaam en pijlen */
+.calendar-header {
+    background: #1b2940;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+}
+
+.calendar-header h2 { margin: 0; font-size: 14px; }
+
+/* Navigatiepijlen in kalenderheader */
+.calendar-header a {
+    color: white;
+    text-decoration: none;
+    font-size: 20px;
+    padding: 6px 12px;
+    touch-action: manipulation;
+    border: 1px solid rgba(255,255,255,.3);
+}
+
+.calendar-header a:hover { background: rgba(255,255,255,.15); }
+
+/* Rij met dagnamen (Ma t/m Zo) */
+.days-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    padding: 6px 6px 2px;
+    background: #f5f7fa;
+}
+
+/* Individuele dagnaamcel */
+.days-header div {
+    background: #1b2940;
+    color: white;
+    padding: 6px 2px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 9px;
+    letter-spacing: .5px;
+}
+
+/* Kalender grid: 7 kolommen */
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    padding: 4px;
+    background: #d0d8e4;
+}
+
+/* Individuele dagcel */
+.day {
+    background: white;
+    border-left: 3px solid #1b2940;
+    min-height: 52px;
+    padding: 4px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Lege cel vóór de eerste dag van de maand */
+.day.empty {
+    background: #f5f7fa;
+    border-left-color: transparent;
+}
+
+/* Dagnummer bovenin de dagcel */
+.date {
+    font-weight: bold;
+    font-size: 10px;
+    color: #1b2940;
+    margin-bottom: 2px;
+    line-height: 1;
+}
+
+/* Lesblokje binnen een dagcel */
+.lesson {
+    background: #dbeafe;
+    border-left: 3px solid #1b2940;
+    padding: 2px 4px;
+    margin-bottom: 2px;
+    font-size: 8px;
+    cursor: pointer;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    touch-action: manipulation;
+    color: #1b2940;
+    font-weight: bold;
+}
+
+.lesson:hover,
+.lesson:active { background: #bcd4ff; }
+
+/* Rode dag: alle lessen op die dag zijn vervallen */
+.day.vervallen-dag {
+    background: #fff0f0 !important;
+    border-left-color: #dc3545 !important;
+}
+
+.day.vervallen-dag .date { color: #dc3545; }
+
+/* VERVALT-label bovenin een rode dagcel */
+.vervallen-label {
+    background: #dc3545;
+    color: white;
+    font-size: 7px;
+    font-weight: bold;
+    padding: 1px 4px;
+    display: block;
+    text-align: center;
+    margin-bottom: 3px;
+    letter-spacing: .5px;
+}
+
+/* Individueel vervallen les: grijs en doorgestreept */
+.lesson.vervallen {
+    background: #f0f0f0 !important;
+    border-left-color: #999 !important;
+    color: #aaa;
+    text-decoration: line-through;
+}
+
+

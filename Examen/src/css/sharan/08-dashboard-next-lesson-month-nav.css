@@ -1,0 +1,48 @@
+﻿/* ================================================================
+   10. DASHBOARD.PHP — VOLGENDE LES & MAAND NAVIGATIE
+   ================================================================ */
+
+/* Donkerblauwe banner met informatie over de eerstvolgende les */
+.volgende-les {
+    background: #1b2940;
+    color: white;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    border: 2px solid #111;
+}
+
+.volgende-les h3    { margin: 0 0 4px 0; font-size: 13px; opacity: .7; }
+.volgende-les .groot { font-size: 20px; font-weight: bold; }
+.volgende-les .detail { font-size: 12px; opacity: .85; margin-top: 4px; }
+.volgende-les .geen  { font-size: 13px; opacity: .7; }
+
+/* Maandnavigatie met pijlen links/rechts */
+.maand-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: white;
+    border: 2px solid #1b2940;
+    padding: 10px 16px;
+    margin-bottom: 12px;
+}
+
+.maand-nav h3 { margin: 0; font-size: 14px; color: #1b2940; }
+
+/* Pijlknoppen in de maandnavigatie */
+.maand-nav a {
+    color: #1b2940;
+    text-decoration: none;
+    font-size: 18px;
+    padding: 4px 10px;
+    border: 1px solid #1b2940;
+}
+
+.maand-nav a:hover { background: #1b2940; color: white; }
+
+

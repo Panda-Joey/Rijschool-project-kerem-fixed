@@ -1,0 +1,36 @@
+﻿/* ================================================================
+   5. BERICHTEN — SUCCES / FOUT / WAARSCHUWING
+   Gebruikt op: wijzig.php, annuleer.php, les_inroosteren.php.
+   ================================================================ */
+
+/* Groene succesbanner */
+.succes {
+    background: #d4edda;
+    border: 2px solid #28a745;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: #155724;
+}
+
+/* Rode foutbanner */
+.fout {
+    background: #f8d7da;
+    border: 2px solid #dc3545;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: #721c24;
+}
+
+/* Gele waarschuwingsbanner */
+.waarschuwing-banner {
+    background: #fff3cd;
+    border: 2px solid #ffc107;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    font-size: 12px;
+    color: #856404;
+}
+
+

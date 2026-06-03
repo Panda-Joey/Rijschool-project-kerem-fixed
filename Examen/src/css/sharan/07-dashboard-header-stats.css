@@ -1,0 +1,67 @@
+﻿/* ================================================================
+   9. DASHBOARD.PHP — HEADER & STATS
+   Bovenste balk met naam, rol en uitlogknop. Statistiekenrij.
+   ================================================================ */
+
+/* Blauwe headerbalk bovenaan het dashboard */
+.dash-header {
+    background: #1b2940;
+    color: white;
+    padding: 14px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.dash-header h2 { margin: 0; font-size: 16px; }
+.dash-header span { font-size: 12px; opacity: .75; }
+
+/* Uitlogknop rechtsboven in de header */
+.logout-btn {
+    background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.4);
+    color: white;
+    padding: 6px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: none;
+    font-family: Arial, sans-serif;
+}
+
+.logout-btn:hover { background: rgba(255,255,255,.25); }
+
+/* Grid van statistiekenkaartjes (lessen, uren, pakket) */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+/* Individueel statistiekenkaartje */
+.stat-card {
+    background: white;
+    border: 2px solid #1b2940;
+    padding: 14px 16px;
+    text-align: center;
+}
+
+/* Groot getal in statistiekenkaartje */
+.stat-card .getal {
+    font-size: 28px;
+    font-weight: bold;
+    color: #1b2940;
+    line-height: 1;
+}
+
+/* Beschrijving onder het getal */
+.stat-card .label {
+    font-size: 11px;
+    color: #888;
+    margin-top: 4px;
+}
+
+

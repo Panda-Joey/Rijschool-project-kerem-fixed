@@ -1,0 +1,187 @@
+﻿/* ================================================================
+   16. BESCHIKBAARHEID.PHP
+   Pagina voor instructeurs om beschikbare dagen en tijden in te stellen.
+   ================================================================ */
+
+/* Formulierwrapper beschikbaarheid */
+.beschikbaar-form {
+    background: white;
+    border: 2px solid #111;
+    padding: 20px;
+    max-width: 620px;
+    margin: 0 auto;
+}
+
+/* Grid van dag-checkboxknoppen (Ma t/m Zo) */
+.dag-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+/* Verberg de echte checkbox, gebruik het label als knop */
+.dag-checkbox { display: none; }
+
+/* Klikbaar dag-label dat als toggleknop werkt */
+.dag-label {
+    display: block;
+    padding: 10px;
+    text-align: center;
+    background: #f0f0f0;
+    border: 2px solid #ccc;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    transition: all .15s;
+    user-select: none;
+}
+
+.dag-label:hover { border-color: #1b2940; background: #e8edf5; }
+
+/* Geselecteerde dag: donkerblauw */
+.dag-checkbox:checked + .dag-label {
+    background: #1b2940;
+    color: white;
+    border-color: #1b2940;
+}
+
+/* Teller die toont hoeveel dagen geselecteerd zijn */
+.dag-teller {
+    font-size: 11px;
+    color: #888;
+    margin-bottom: 16px;
+}
+
+.dag-teller span { font-weight: bold; color: #1b2940; }
+
+/* Instellingenpaneel per geselecteerde dag */
+.dag-instellingen {
+    display: none;
+    background: #f8f9ff;
+    border: 2px solid #1b2940;
+    border-left: 5px solid #1b2940;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    animation: slideIn .2s ease;
+}
+
+/* Zichtbaar als de dag geselecteerd is */
+.dag-instellingen.zichtbaar { display: block; }
+
+.dag-instellingen h4 {
+    margin: 0 0 12px 0;
+    font-size: 13px;
+    color: #1b2940;
+}
+
+/* Rij met begin- en eindtijd selects naast elkaar */
+.tijd-rij {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    margin-bottom: 12px;
+}
+
+.tijd-rij .form-group {
+    flex: 1;
+    min-width: 100px;
+    margin-bottom: 0;
+}
+
+.tijd-rij .form-group label { font-size: 11px; }
+
+/* Rij met klikbare nummerknoppen voor max lessen */
+.max-lessen-rij {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* Individuele nummerknop voor max lessen */
+.max-btn {
+    width: 36px;
+    height: 36px;
+    background: #f0f0f0;
+    border: 2px solid #ccc;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .1s;
+}
+
+.max-btn:hover  { border-color: #1b2940; background: #e8edf5; }
+.max-btn.actief { background: #1b2940; color: white; border-color: #1b2940; }
+
+/* Overzicht van huidige beschikbaarheid */
+.overzicht {
+    background: white;
+    border: 2px solid #111;
+    margin-top: 16px;
+    max-width: 620px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.overzicht h3 {
+    background: #1b2940;
+    color: white;
+    margin: 0;
+    padding: 10px 16px;
+    font-size: 13px;
+}
+
+/* Rij per dag in het overzicht */
+.overzicht-rij {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    border-bottom: 1px solid #eee;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 12px;
+}
+
+.overzicht-rij:last-child { border-bottom: none; }
+
+/* Dagnaam vetgedrukt in overzichtsrij */
+.dag-naam { font-weight: bold; color: #1b2940; min-width: 90px; }
+
+/* Flex-rij van tijdslotbadges */
+.slot-grid {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+/* Tijdslotbadge: standaard blauw */
+.slot {
+    padding: 2px 7px;
+    font-size: 10px;
+    border: 1px solid #4d7cff;
+    background: #bcd4ff;
+    color: #1b2940;
+}
+
+/* Bezet tijdslot: rood en doorgestreept */
+.slot.bezet {
+    background: #f8d7da;
+    border-color: #dc3545;
+    color: #721c24;
+    text-decoration: line-through;
+}
+
+/* Vrij tijdslot: groen */
+.slot.vrij {
+    background: #d4edda;
+    border-color: #28a745;
+    color: #155724;
+}
+
+
