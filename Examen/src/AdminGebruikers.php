@@ -1,5 +1,4 @@
 <?php
-session_start();
 $servername = "mysql";
 $username   = "root";
 $password   = "password";
@@ -10,60 +9,139 @@ if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
 
 $adminNaam = $_SESSION['naam'] ?? 'Admin';
 
+$pakketten = [];
+$pakketResult = $conn->query("SELECT idlespakket, naam, uren FROM lespakket ORDER BY naam");
+while ($row = $pakketResult->fetch_assoc()) {
+    $pakketten[] = $row;
+}
 
+if (isset($_POST['toevoegen']) || isset($_POST['bewerken'])) {
+    $voornaam      = trim($_POST['voornaam'] ?? '');
+    $tussenvoegsel = trim($_POST['tussenvoegsel'] ?? '');
+    $achternaam    = trim($_POST['achternaam'] ?? '');
+    $email         = trim($_POST['email'] ?? '');
+    $wachtwoord    = $_POST['wachtwoord'] ?? '';
+    $telefoon      = trim($_POST['telefoon'] ?? '');
+    $beperking     = (int) ($_POST['beperking'] ?? 0);
+    $omschrijving  = trim($_POST['omschrijving'] ?? '') ?: null;
+    $geboortedatum = $_POST['geboortedatum'] ?? date('Y-m-d');
+    $status        = $_POST['status'] ?? 'pending';
+    $lespakketID   = (int) ($_POST['lespakketID'] ?? 0);
 
-
-if(isset($_POST['toevoegen']) || isset($_POST['bewerken'])){
-
-    // Haal alle velden op en voorkom "Undefined key" waarschuwingen
-    $voornaam      = $_POST['voornaam'] ?? '';
-    $tussenvoegsel = $_POST['tussenvoegsel'] ?? '';
-    $achternaam    = $_POST['achternaam'] ?? '';
-    $email         = $_POST['email'] ?? '';
-    $wachtwoord    = $_POST['wachtwoord'] ?? ''; // Geen hashing meer
-    $telefoon      = $_POST['telefoon'] ?? '';
-    $beperking     = $_POST['beperking'] ?? 0;
-    $omschrijving  = $_POST['omschrijving'] ?? '';
-    $geboortedatum = $_POST['geboortedatum'] ?? '';
-    $lesPakket     = $_POST['lesPakket'] ?? '';
-
-    // Voorkom de "cannot be null" error voor de datum
-    if (empty($geboortedatum)) {
-        // Je kunt hier een foutmelding geven of een standaard datum (bijv. vandaag) gebruiken
-        $geboortedatum = date('Y-m-d'); 
-    }
-
-    if(isset($_POST['toevoegen'])){
+    if (isset($_POST['toevoegen'])) {
+        $hash = password_hash($wachtwoord, PASSWORD_DEFAULT);
         $stmt = $conn->prepare("
             INSERT INTO studenten (
                 voornaam, tussenvoegsel, achternaam, email, wachtwoord,
-                telefoon, beperking, omschrijving, geboortedatum, lesPakket
+                telefoon, beperking, omschrijving, geboortedatum, status
             ) VALUES (?,?,?,?,?,?,?,?,?,?)
         ");
-        $stmt->bind_param("ssssssisss", $voornaam, $tussenvoegsel, $achternaam, $email, $wachtwoord, $telefoon, $beperking, $omschrijving, $geboortedatum, $lesPakket);
+        $stmt->bind_param(
+            "ssssssisss",
+            $voornaam,
+            $tussenvoegsel,
+            $achternaam,
+            $email,
+            $hash,
+            $telefoon,
+            $beperking,
+            $omschrijving,
+            $geboortedatum,
+            $status
+        );
         $stmt->execute();
+        $studentID = (int) $conn->insert_id;
+        $stmt->close();
+
+        if ($lespakketID > 0 && $studentID > 0) {
+            $stmt2 = $conn->prepare("
+                INSERT INTO student_lespakket (studentID, idlespakket, overige_uren)
+                SELECT ?, idlespakket, uren FROM lespakket WHERE idlespakket = ?
+            ");
+            $stmt2->bind_param("ii", $studentID, $lespakketID);
+            $stmt2->execute();
+            $stmt2->close();
+        }
     }
 
-    if(isset($_POST['bewerken'])){
-        $studentID = $_POST['studentID'];
-        $stmt = $conn->prepare("
-            UPDATE studenten SET
-                voornaam=?, tussenvoegsel=?, achternaam=?, email=?, wachtwoord=?,
-                telefoon=?, beperking=?, omschrijving=?, geboortedatum=?, lesPakket=?
-            WHERE studentID=?
-        ");
-        $stmt->bind_param("ssssssisssi", $voornaam, $tussenvoegsel, $achternaam, $email, $wachtwoord, $telefoon, $beperking, $omschrijving, $geboortedatum, $lesPakket, $studentID);
+    if (isset($_POST['bewerken'])) {
+        $studentID = (int) ($_POST['studentID'] ?? 0);
+
+        if ($wachtwoord !== '') {
+            $hash = password_hash($wachtwoord, PASSWORD_DEFAULT);
+            $stmt = $conn->prepare("
+                UPDATE studenten SET
+                    voornaam=?, tussenvoegsel=?, achternaam=?, email=?, wachtwoord=?,
+                    telefoon=?, beperking=?, omschrijving=?, geboortedatum=?, status=?
+                WHERE studentID=?
+            ");
+            $stmt->bind_param(
+                "ssssssisssi",
+                $voornaam,
+                $tussenvoegsel,
+                $achternaam,
+                $email,
+                $hash,
+                $telefoon,
+                $beperking,
+                $omschrijving,
+                $geboortedatum,
+                $status,
+                $studentID
+            );
+        } else {
+            $stmt = $conn->prepare("
+                UPDATE studenten SET
+                    voornaam=?, tussenvoegsel=?, achternaam=?, email=?,
+                    telefoon=?, beperking=?, omschrijving=?, geboortedatum=?, status=?
+                WHERE studentID=?
+            ");
+            $stmt->bind_param(
+                "sssssisssi",
+                $voornaam,
+                $tussenvoegsel,
+                $achternaam,
+                $email,
+                $telefoon,
+                $beperking,
+                $omschrijving,
+                $geboortedatum,
+                $status,
+                $studentID
+            );
+        }
         $stmt->execute();
+        $stmt->close();
+
+        if ($lespakketID > 0) {
+            $conn->query("DELETE FROM student_lespakket WHERE studentID = $studentID");
+            $stmt2 = $conn->prepare("
+                INSERT INTO student_lespakket (studentID, idlespakket, overige_uren)
+                SELECT ?, idlespakket, uren FROM lespakket WHERE idlespakket = ?
+            ");
+            $stmt2->bind_param("ii", $studentID, $lespakketID);
+            $stmt2->execute();
+            $stmt2->close();
+        }
     }
 }
 
-// Verwijderen en Select queries blijven hetzelfde...
-if(isset($_GET['verwijderen'])){
+if (isset($_GET['verwijderen'])) {
+    $studentID = (int) $_GET['verwijderen'];
+    $conn->query("DELETE FROM student_lespakket WHERE studentID = $studentID");
     $stmt = $conn->prepare("DELETE FROM studenten WHERE studentID=?");
-    $stmt->bind_param("i", $_GET['verwijderen']);
+    $stmt->bind_param("i", $studentID);
     $stmt->execute();
+    $stmt->close();
 }
-$result = $conn->query("SELECT * FROM studenten");
+
+$result = $conn->query("
+    SELECT s.*, lp.naam AS lesPakketNaam, lp.idlespakket
+    FROM studenten s
+    LEFT JOIN student_lespakket sl ON s.studentID = sl.studentID
+    LEFT JOIN lespakket lp ON sl.idlespakket = lp.idlespakket
+    ORDER BY s.achternaam, s.voornaam
+");
 ?>
 
 <!DOCTYPE html>
@@ -186,12 +264,23 @@ $result = $conn->query("SELECT * FROM studenten");
             id="geboortedatum"
             >
 
-            <input
-            type="text"
-            name="lesPakket"
-            id="lesPakket"
-            placeholder="Lespakket"
-            >
+            <label>Status</label>
+            <select name="status" id="status">
+                <option value="pending">Pending</option>
+                <option value="actief">Actief</option>
+                <option value="geslaagd">Geslaagd</option>
+            </select>
+
+            <label>Lespakket</label>
+            <select name="lespakketID" id="lespakketID">
+                <option value="">— Geen pakket —</option>
+                <?php foreach ($pakketten as $pakket): ?>
+                    <option value="<?= (int) $pakket['idlespakket'] ?>">
+                        <?= htmlspecialchars($pakket['naam'], ENT_QUOTES, 'UTF-8') ?>
+                        (<?= (int) $pakket['uren'] ?> uur)
+                    </option>
+                <?php endforeach; ?>
+            </select>
 
             <button type="submit" name="toevoegen" id="addBtn">
                 Opslaan
@@ -217,46 +306,47 @@ $result = $conn->query("SELECT * FROM studenten");
             <th>Acties</th>
         </tr>
 
-        <?php while($student = $result->fetch_assoc()): ?>
+        <?php while ($student = $result->fetch_assoc()):
+            $studentJson = htmlspecialchars(json_encode([
+                'studentID'     => (int) $student['studentID'],
+                'voornaam'      => $student['voornaam'],
+                'tussenvoegsel' => $student['tussenvoegsel'] ?? '',
+                'achternaam'    => $student['achternaam'],
+                'email'         => $student['email'],
+                'telefoon'      => $student['telefoon'],
+                'beperking'     => (int) $student['beperking'],
+                'omschrijving'  => $student['omschrijving'] ?? '',
+                'geboortedatum' => $student['geboortedatum'],
+                'status'        => $student['status'],
+                'lespakketID'   => (int) ($student['idlespakket'] ?? 0),
+            ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8');
+        ?>
 
         <tr>
 
             <td>
-                <?= $student['voornaam']; ?>
-                <?= $student['tussenvoegsel']; ?>
-                <?= $student['achternaam']; ?>
+                <?= htmlspecialchars(trim($student['voornaam'] . ' ' . ($student['tussenvoegsel'] ?? '') . ' ' . $student['achternaam'])) ?>
             </td>
 
             <td>
-                <?= $student['email']; ?>
+                <?= htmlspecialchars($student['email']) ?>
             </td>
 
             <td>
-                <?= $student['telefoon']; ?>
+                <?= htmlspecialchars($student['telefoon']) ?>
             </td>
 
             <td>
-                <?= $student['lesPakket']; ?>
+                <?= htmlspecialchars($student['lesPakketNaam'] ?? '—') ?>
             </td>
 
             <td>
 
                 <button
+                type="button"
                 class="action-btn edit-btn"
-
-                onclick="editStudent(
-                '<?= $student['studentID']; ?>',
-                '<?= $student['voornaam']; ?>',
-                '<?= $student['tussenvoegsel']; ?>',
-                '<?= $student['achternaam']; ?>',
-                '<?= $student['email']; ?>',
-                '<?= $student['wachtwoord']; ?>',
-                '<?= $student['telefoon']; ?>',
-                '<?= $student['beperking']; ?>',
-                '<?= $student['omschrijving']; ?>',
-                '<?= $student['geboortedatum']; ?>',
-                '<?= $student['lesPakket']; ?>'
-                )">
+                data-student="<?= $studentJson ?>"
+                onclick="editStudentFromBtn(this)">
                     Bewerken
                 </button>
 
@@ -292,44 +382,38 @@ function openAddForm(){
     clearForm();
 }
 
-function editStudent(
-    id,
-    voornaam,
-    tussenvoegsel,
-    achternaam,
-    email,
-    wachtwoord,
-    telefoon,
-    beperking,
-    omschrijving,
-    geboortedatum,
-    lesPakket
-){
+function editStudentFromBtn(button){
+    editStudent(JSON.parse(button.getAttribute('data-student')));
+}
+
+function editStudent(student){
 
     document.getElementById("formBox")
     .style.display = "block";
 
-    document.getElementById("studentID").value = id;
+    document.getElementById("studentID").value = student.studentID;
 
-    document.getElementById("voornaam").value = voornaam;
+    document.getElementById("voornaam").value = student.voornaam;
 
-    document.getElementById("tussenvoegsel").value = tussenvoegsel;
+    document.getElementById("tussenvoegsel").value = student.tussenvoegsel;
 
-    document.getElementById("achternaam").value = achternaam;
+    document.getElementById("achternaam").value = student.achternaam;
 
-    document.getElementById("email").value = email;
+    document.getElementById("email").value = student.email;
 
-    document.getElementById("wachtwoord").value = wachtwoord;
+    document.getElementById("wachtwoord").value = "";
 
-    document.getElementById("telefoon").value = telefoon;
+    document.getElementById("telefoon").value = student.telefoon;
 
-    document.getElementById("beperking").value = beperking;
+    document.getElementById("beperking").value = student.beperking;
 
-    document.getElementById("omschrijving").value = omschrijving;
+    document.getElementById("omschrijving").value = student.omschrijving;
 
-    document.getElementById("geboortedatum").value = geboortedatum;
+    document.getElementById("geboortedatum").value = student.geboortedatum;
 
-    document.getElementById("lesPakket").value = lesPakket;
+    document.getElementById("status").value = student.status;
+
+    document.getElementById("lespakketID").value = student.lespakketID || "";
 
     document.getElementById("addBtn")
     .style.display = "none";
@@ -360,7 +444,9 @@ function clearForm(){
 
     document.getElementById("geboortedatum").value = "";
 
-    document.getElementById("lesPakket").value = "";
+    document.getElementById("status").value = "pending";
+
+    document.getElementById("lespakketID").value = "";
 }
 
 </script>

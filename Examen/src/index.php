@@ -1,6 +1,4 @@
 <?php
 
-// http://localhost/ opent altijd de homepage
-require __DIR__ . '/login.php';
-
-
+header('Location: ' . (isLoggedIn() ? dashboardUrlForRole() : src_url('homepage.php')));
+exit;

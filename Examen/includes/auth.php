@@ -15,10 +15,14 @@ function dashboardUrlForRole($role = null)
     $role = $role ?? ($_SESSION['role'] ?? null);
 
     if ($role === 'eigenaar') {
-        return app_url('src/AdminDashboard.php');
+        return src_url('AdminDashboard.php');
     }
 
-    return app_url('src/dashboard.php');
+    if ($role === 'leerling') {
+        return src_url('StudentDashboard.php');
+    }
+
+    return src_url('InstructeurDashboard.php');
 }
 
 function legacyRoleFromAppRole($role)
@@ -47,10 +51,17 @@ function displayNameFromEmail($email)
     return ucwords($localPart);
 }
 
-function setLegacySessionForSrc($email, $role)
+function setLegacySessionForSrc($email, $role, $user = null)
 {
-    // src/ verwacht deze keys voor authorisatie + UI
-    $_SESSION['userID'] = abs(crc32($email)) ?: 1;
+    $user = $user ?? (DEMO_USERS[$email] ?? null);
+
+    if ($user !== null && isset($user['userID'])) {
+        $_SESSION['userID'] = (int) $user['userID'];
+    } else {
+        // Fallback: past binnen MySQL INT (crc32 kan > 2^31-1 zijn)
+        $_SESSION['userID'] = abs(crc32($email) % 2147483647) ?: 1;
+    }
+
     $_SESSION['rol'] = legacyRoleFromAppRole($role);
     $_SESSION['naam'] = displayNameFromEmail($email);
 }
@@ -85,7 +96,7 @@ function attemptTestLogin($role)
         if ($user['role'] === $role) {
             $_SESSION['user'] = $email;
             $_SESSION['role'] = $role;
-            setLegacySessionForSrc($email, $role);
+            setLegacySessionForSrc($email, $role, $user);
             touchSessionActivity();
             return null;
         }
@@ -108,7 +119,7 @@ function attemptLogin($email, $password)
 
     $_SESSION['user'] = $email;
     $_SESSION['role'] = $user['role'];
-    setLegacySessionForSrc($email, $user['role']);
+    setLegacySessionForSrc($email, $user['role'], $user);
     touchSessionActivity();
 
     return null;

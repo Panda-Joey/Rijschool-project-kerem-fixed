@@ -1,5 +1,4 @@
 <?php
-session_start();
 $servername = "mysql";
 $username   = "root";
 $password   = "password";

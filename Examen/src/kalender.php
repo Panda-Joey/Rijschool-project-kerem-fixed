@@ -1,6 +1,4 @@
 <?php
-session_start();
-
 $servername = "mysql";
 $username   = "root";
 $password   = "password";
@@ -9,11 +7,6 @@ $dbname     = "Eend";
 $conn = new mysqli($servername, $username, $password, $dbname);
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
-}
-
-if (!isset($_SESSION['userID']) || !isset($_SESSION['rol'])) { 
-    header("Location: /login.php"); 
-    exit; 
 }
 
 $rol    = $_SESSION['rol'];
@@ -107,7 +100,7 @@ foreach ($lessen as $dag => $dagLessen) {
                 </span>
             </span>
         </div>
-        <a href="../logout.php" class="logout-btn">Uitloggen →</a>
+        <a href="<?= htmlspecialchars(logout_url(), ENT_QUOTES, 'UTF-8') ?>" class="logout-btn">Uitloggen →</a>
     </div>
 
     <!-- Navigatie -->

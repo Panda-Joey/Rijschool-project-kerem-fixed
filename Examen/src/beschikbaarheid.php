@@ -1,5 +1,4 @@
 <?php
-session_start();
 $servername = "mysql";
 $username   = "root";
 $password   = "password";
@@ -7,19 +6,7 @@ $dbname     = "Eend";
 $conn = new mysqli($servername, $username, $password, $dbname);
 if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
 
-// if (!isset($_SESSION['userID']) || $_SESSION['rol'] !== 'instructeur') {
-//     header("Location: /login.php");
-//     exit;
-// }
-
-
-// require_once dirname(__DIR__) . '/includes/database.php';
-// $conn = getDbConnection();
-
-
-
-
-$instrID = $_SESSION['userID'];
+$instrID = intval($_SESSION['userID']);
 $succes  = "";
 $fout    = "";
 

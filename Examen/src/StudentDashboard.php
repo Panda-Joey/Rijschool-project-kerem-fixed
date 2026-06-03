@@ -1,10 +1,4 @@
 <?php
-session_start();
-if (!isset($_SESSION['userID']) || $_SESSION['rol'] !== 'student') {
-    header("Location: /login.php");
-    exit;
-}
-
 $servername = "mysql";
 $username   = "root";
 $password   = "password";
@@ -95,7 +89,7 @@ $stmtSt->close();
             <h2>👋 <?= htmlspecialchars($naam) ?> <span class="rol-badge badge-student">🚗 Student</span></h2>
             <span>Rijschool Dashboard</span>
         </div>
-        <a href="../logout.php" class="logout-btn">Uitloggen →</a>
+        <a href="<?= htmlspecialchars(logout_url(), ENT_QUOTES, 'UTF-8') ?>" class="logout-btn">Uitloggen →</a>
     </div>
 
     <div class="top-buttons">
