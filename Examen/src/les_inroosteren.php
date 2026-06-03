@@ -14,7 +14,7 @@ $fout   = "";
 
 $dagNamen = ['','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag','Zondag'];
 
-$dashboardLink = ($rol === 'instructeur') ? 'Instructeurdashboard.php' : 'Studentdashboard.php';
+$dashboardLink = srcDashboardPath();
 
 // ── Auto's ophalen ─────────────────────────────────────────
 $autos = [];
@@ -166,7 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             ('$datum','$tijd:00','$ophaal','$doel','$onderwerpen',$studentID,$instrID,$autoID,0)
                     ");
                     $door   = $rol === 'instructeur' ? "door instructeur ingepland" : "aangevraagd";
-                    $succes = "Les $door op <strong>$datum om $tijd</strong>! <a href='dashboard.php'>Naar dashboard →</a>";
+                    $succes = "Les $door op <strong>$datum om $tijd</strong>! <a href='" . htmlspecialchars(srcDashboardPath(), ENT_QUOTES, 'UTF-8') . "'>Naar dashboard →</a>";
                 }
             }
         }

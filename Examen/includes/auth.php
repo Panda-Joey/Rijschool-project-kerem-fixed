@@ -25,6 +25,21 @@ function dashboardUrlForRole($role = null)
     return src_url('InstructeurDashboard.php');
 }
 
+function srcDashboardPath(): string
+{
+    $legacyRol = $_SESSION['rol'] ?? '';
+
+    if ($legacyRol === 'student') {
+        return 'StudentDashboard.php';
+    }
+
+    if (($_SESSION['role'] ?? '') === 'eigenaar') {
+        return 'AdminDashboard.php';
+    }
+
+    return 'InstructeurDashboard.php';
+}
+
 function legacyRoleFromAppRole($role)
 {
     if ($role === 'leerling') {

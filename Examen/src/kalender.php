@@ -106,9 +106,9 @@ foreach ($lessen as $dag => $dagLessen) {
     <!-- Navigatie -->
     <div class="top-buttons">
         <?php if ($rol === 'instructeur'): ?>
-            <a href="Instructeurdashboard.php" class="nav-btn">Dashboard</a>
+            <a href="InstructeurDashboard.php" class="nav-btn">Dashboard</a>
         <?php else: ?>
-            <a href="Studentdashboard.php" class="nav-btn">Dashboard</a>
+            <a href="StudentDashboard.php" class="nav-btn">Dashboard</a>
         <?php endif; ?>
         
         <div class="nav-btn active">Kalender</div>

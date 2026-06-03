@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <h1>Les Annuleren</h1>
 
     <div class="top-buttons">
-        <a href="dashboard.php" class="nav-btn" style="text-decoration:none;color:inherit;">Dashboard</a>
+        <a href="<?= htmlspecialchars(srcDashboardPath(), ENT_QUOTES, 'UTF-8') ?>" class="nav-btn" style="text-decoration:none;color:inherit;">Dashboard</a>
         <a href="kalender.php?maand=<?= $maand ?>" class="nav-btn" style="text-decoration:none;color:inherit;">Kalender</a>
         <a href="beschikbaarheid.php" class="nav-btn" style="text-decoration:none;color:inherit;">Rooster</a>
         <div class="nav-btn">Profiel</div>

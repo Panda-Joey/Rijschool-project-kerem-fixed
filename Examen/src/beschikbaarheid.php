@@ -91,7 +91,7 @@ function tijdOpties($geselecteerd = '') {
     <h1>Beschikbaarheid instellen</h1>
 
     <div class="top-buttons">
-        <a href="dashboard.php" class="nav-btn">Dashboard</a>
+        <a href="<?= htmlspecialchars(srcDashboardPath(), ENT_QUOTES, 'UTF-8') ?>" class="nav-btn">Dashboard</a>
         <a href="kalender.php"     class="nav-btn">Kalender</a>
         <div class="nav-btn active">Rooster</div>
         <div class="nav-btn">Profiel</div>
@@ -186,7 +186,7 @@ function tijdOpties($geselecteerd = '') {
             <?php endforeach; ?>
 
             <div class="btn-row" style="margin-top:20px;">
-                <a href="dashboard.php" class="btn-terug">← Terug</a>
+                <a href="<?= htmlspecialchars(srcDashboardPath(), ENT_QUOTES, 'UTF-8') ?>" class="btn-terug">← Terug</a>
                 <button type="submit" class="btn-opslaan">💾 Opslaan</button>
             </div>
 
