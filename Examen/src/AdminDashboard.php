@@ -38,7 +38,7 @@ if ($conn->connect_error) {
             <p>Rijschool Dashboard</p>
         </div>
 
-        <a href="/login.php?logout=1" class="logout-btn">Uitloggen →</a>
+        <a href="/logout.php" class="logout-btn">Uitloggen →</a>
     </header>
 
     <!-- NAVIGATIE -->

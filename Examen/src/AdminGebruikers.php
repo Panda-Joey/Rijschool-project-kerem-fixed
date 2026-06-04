@@ -163,7 +163,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete') {
             <span class="badge">Admin</span>
             <p>Rijschool Dashboard</p>
         </div>
-        <a href="/login.php?logout=1" class="logout-btn">Uitloggen →</a>
+        <a href="/logout.php" class="logout-btn">Uitloggen →</a>
     </header>
 
     <div class="nav-grid">
