@@ -195,7 +195,7 @@ body {
 .card--scroll {
     display: flex;
     flex-direction: column;
-    height: 469px;
+    height: 500px;
 }
 
 .card--scroll .card-body {
@@ -410,14 +410,80 @@ input:focus {
     background: #e2e8f0;
 }
 
-.footer {
-    background-color: #1a2744;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: white;
-    flex: 1;
-    width: 100%;
-    padding: 20px;
-    height: 200px;
+@media (max-width: 768px) {
+
+    body {
+        font-size: 16px;
+    }
+
+    .page {
+        padding: 1rem;
+    }
+
+    .card-row,
+    .card-row--tall {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .card {
+        max-width: 100%;
+    }
+
+    .card-header {
+        padding: 1rem 1.25rem;
+    }
+
+    .card-body {
+        padding: 1.25rem;
+    }
+
+    .card--hero {
+        height: 220px;
+    }
+
+    .card--hero-content h1 {
+        font-size: 1.8rem;
+        text-align: center;
+    }
+
+    .card--hero-content p {
+        text-align: center;
+    }
+
+    .card--scroll {
+        display: flex;
+        flex-direction: column;
+        max-height: 400px;
+    }
+
+    .card--scroll .card-body {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+    }
+
+     .site-header__inner {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+
+    .site-header__nav {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .nav-btn {
+        flex: 1;
+        min-width: 120px;
+    }
+
+     .card {
+        box-shadow: 4px 4px 0 0 #000;
+    }
+
+    .btn {
+        box-shadow: 3px 3px 0 0 #000;
+    }
 }

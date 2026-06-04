@@ -15,6 +15,7 @@
     <title>Homepage — <?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></title>
     <link rel="stylesheet" href="<?= htmlspecialchars(app_url('assets/css/homepage.css'), ENT_QUOTES, 'UTF-8') ?>">
 </head>
+
 <body>
     <?php require __DIR__ . '/header.php'; ?>
 
@@ -81,7 +82,11 @@
                         <h3>Routebeschrijving</h3>
                     </div>
                     <div class="card-body">
-                        <div class="card-map"></div>
+                        <iframe
+                            src="https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d608.9535493558982!2d5.27828126970124!3d52.37378899825145!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2zNTLCsDIyJzI1LjYiTiA1wrAxNic0NC4xIkU!5e0!3m2!1sen!2snl!4v1780577240247!5m2!1sen!2snl"
+                            width="300" height="200" style="border:0;" allowfullscreen="" loading="lazy" 
+                            referrerpolicy="no-referrer-when-downgrade">
+                        </iframe>
                         <p>Plan je route naar onze locatie in een paar stappen.</p>
                     </div>
                 </section>
