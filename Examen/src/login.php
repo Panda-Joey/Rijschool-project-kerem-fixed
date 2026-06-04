@@ -4,6 +4,7 @@
  * Inlogpagina — http://localhost:8888/src/login.php
  * Scherm: views/login.view.php | Accounts: config/app.php
  */
+require_once dirname(__DIR__) . '/includes/ensure-app.php';
 
 if (isset($_GET['logout'])) {
     header('Location: ' . logout_url());

@@ -1,4 +1,6 @@
 <?php
+require_once dirname(__DIR__) . '/includes/ensure-app.php';
+
 $servername = "mysql";
 $username   = "root";
 $password   = "password";
