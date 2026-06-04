@@ -4,6 +4,8 @@
  * Startpagina — http://localhost:8888/
  */
 
+require_once __DIR__ . '/includes/ensure-app.php';
+
 ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
