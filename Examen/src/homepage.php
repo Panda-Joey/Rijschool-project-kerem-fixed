@@ -13,11 +13,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Homepage — <?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></title>
-    <link rel="stylesheet" href="<?= htmlspecialchars(app_url('assets/css/login.css'), ENT_QUOTES, 'UTF-8') ?>">
+    <link rel="stylesheet" href="<?= htmlspecialchars(app_url('assets/css/homepage.css'), ENT_QUOTES, 'UTF-8') ?>">
 </head>
-
 <body>
-    <?php require __DIR__ . '/partials/header.php'; ?>
+    <?php require __DIR__ . '/header.php'; ?>
 
     <main class="page page--with-header" id="homepage-page">
         <div class="content-width">
@@ -119,7 +118,7 @@
                         <h4>9. Overmacht</h4>
                         <p>Bij ziekte, weersomstandigheden of andere onverwachte situaties mag een les worden verzet.
                         </p>
-                        <h4>Toepasselijk recht</h4>
+                        <h4>10. Toepasselijk recht</h4>
                         <p>Op deze voorwaarden is Nederlands recht van toepassing.</p>
                     </div>
                 </section>
@@ -140,12 +139,11 @@
                             Plan lessen, volg je voortgang en beheer alles vanuit één app.
                             <span class="email">meld aan om verder te gaan.</span>
                         </p>
-                        <a href="<?= htmlspecialchars(app_url('login.php'), ENT_QUOTES, 'UTF-8') ?>"
+                        <a href="<?= htmlspecialchars(src_url('aanmelden.php'), ENT_QUOTES, 'UTF-8') ?>"
                             class="btn btn-primary btn-link">Naar aanmelden</a>
                     <?php endif; ?>
                 </div>
             </section>
-
         </div>
     </main>
 </body>

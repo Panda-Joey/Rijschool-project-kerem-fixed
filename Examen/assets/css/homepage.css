@@ -409,3 +409,15 @@ input:focus {
 .btn-test:hover {
     background: #e2e8f0;
 }
+
+.footer {
+    background-color: #1a2744;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    flex: 1;
+    width: 100%;
+    padding: 20px;
+    height: 200px;
+}
