@@ -1,4 +1,6 @@
 <?php
+
+
 $servername = "mysql";
 $username   = "root";
 $password   = "password";
@@ -7,6 +9,11 @@ $dbname     = "Eend";
 $conn = new mysqli($servername, $username, $password, $dbname);
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
+}
+
+if (!isset($_SESSION['userID']) || !isset($_SESSION['rol'])) { 
+    header("Location: /login.php"); 
+    exit; 
 }
 
 $rol    = $_SESSION['rol'];
@@ -100,19 +107,28 @@ foreach ($lessen as $dag => $dagLessen) {
                 </span>
             </span>
         </div>
-        <a href="<?= htmlspecialchars(logout_url(), ENT_QUOTES, 'UTF-8') ?>" class="logout-btn">Uitloggen →</a>
+        <a href="../logout.php" class="logout-btn">Uitloggen →</a>
     </div>
 
     <!-- Navigatie -->
-    <div class="top-buttons">
+   <div class="top-buttons">
         <?php if ($rol === 'instructeur'): ?>
-            <a href="InstructeurDashboard.php" class="nav-btn">Dashboard</a>
+            <a href="Instructeurdashboard.php" class="nav-btn">Dashboard</a>
         <?php else: ?>
-            <a href="StudentDashboard.php" class="nav-btn">Dashboard</a>
+            <a href="Studentdashboard.php" class="nav-btn">Dashboard</a>
         <?php endif; ?>
         
         <div class="nav-btn active">Kalender</div>
-        <a href="beschikbaarheid.php" class="nav-btn">Rooster</a>
+        
+        <?php if ($rol === 'instructeur'): ?>
+            <a href="beschikbaarheid.php" class="nav-btn">Rooster</a>
+        <?php endif; ?>
+
+        <?php if ($rol === 'instructeur'): ?>
+            <a href="Profieli.php" class="nav-btn">Profiel</a>
+        <?php else: ?>
+            <a href="Profiels.php" class="nav-btn">Profiel</a>
+        <?php endif; ?>
         
         <?php if ($rol === 'instructeur'): ?>
             <a href="les_inroosteren.php" class="nav-btn">+ Les inplannen</a>

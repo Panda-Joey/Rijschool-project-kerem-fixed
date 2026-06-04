@@ -1,0 +1,170 @@
+<?php
+
+// Controleren of de instructeur is ingelogd
+if (!isset($_SESSION['userID']) || $_SESSION['rol'] !== 'instructeur') {
+    header("Location: /login.php");
+    exit;
+}
+
+$servername = "mysql";
+$username   = "root";
+$password   = "password";
+$dbname     = "Eend";
+
+$conn = new mysqli($servername, $username, $password, $dbname);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+$userID = intval($_SESSION['userID']);
+$naam   = $_SESSION['naam'];
+$success_msg = "";
+$error_msg = "";
+
+// ── Formulierverwerking (Gegevens updaten) ───────────────────────────
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $voornaam = trim($_POST['voornaam']);
+    $tussenvoegsel = trim($_POST['tussenvoegsel']);
+    $achternaam = trim($_POST['achternaam']);
+    $email = trim($_POST['email']);
+    $telefoon = trim($_POST['telefoon']);
+    $omschrijving = trim($_POST['omschrijving']);
+    $wachtwoord = $_POST['wachtwoord'];
+
+    if (empty($voornaam) || empty($achternaam) || empty($email) || empty($telefoon)) {
+        $error_msg = "❌ Vul alle verplichte velden in.";
+    } else {
+        if (!empty($wachtwoord)) {
+            $hashed_password = password_hash($wachtwoord, PASSWORD_BCRYPT);
+            // Let op: Tabel 'instructeurs' en kolom 'instructeurID'
+            $stmt = $conn->prepare("UPDATE instructeurs SET voornaam = ?, tussenvoegsel = ?, achternaam = ?, email = ?, telefoon = ?, omschrijving = ?, wachtwoord = ? WHERE instructeurID = ?");
+            $stmt->bind_param("sssssssi", $voornaam, $tussenvoegsel, $achternaam, $email, $telefoon, $omschrijving, $hashed_password, $userID);
+        } else {
+            $stmt = $conn->prepare("UPDATE instructeurs SET voornaam = ?, tussenvoegsel = ?, achternaam = ?, email = ?, telefoon = ?, omschrijving = ? WHERE instructeurID = ?");
+            $stmt->bind_param("ssssssi", $voornaam, $tussenvoegsel, $achternaam, $email, $telefoon, $omschrijving, $userID);
+        }
+
+        if ($stmt->execute()) {
+            $success_msg = "✅ Je instructeursprofiel is succesvol bijgewerkt!";
+            $_SESSION['naam'] = trim("$voornaam $tussenvoegsel $achternaam");
+            $naam = $_SESSION['naam'];
+        } else {
+            $error_msg = "❌ Er ging iets mis bij het updaten: " . $conn->error;
+        }
+        $stmt->close();
+    }
+}
+
+// ── Huidige Instructeurgegevens Ophalen ──────────────────────────────
+$stmt = $conn->prepare("SELECT voornaam, tussenvoegsel, achternaam, email, telefoon, omschrijving, rol FROM instructeurs WHERE instructeurID = ? LIMIT 1");
+$stmt->bind_param("i", $userID);
+$stmt->execute();
+$result = $stmt->get_result();
+$instructeur = $result->fetch_assoc();
+$stmt->close();
+
+if (!$instructeur) {
+    die("Instructeur niet gevonden.");
+}
+?>
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instructeur Profiel — <?= htmlspecialchars($naam) ?></title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+
+    <div class="dash-header">
+        <div>
+            <h2>👋 <?= htmlspecialchars($naam) ?> <span class="rol-badge badge-instructeur" style="background:#10b981; color:white; padding:3px 8px; border-radius:4px; font-size:14px;">🎓 Instructeur</span></h2>
+            <span>Instructeur Dashboard > Profiel beheren</span>
+        </div>
+        <a href="../logout.php" class="logout-btn">Uitloggen →</a>
+    </div>
+
+    <div class="top-buttons">
+        <a href="instructeurdashboard.php" class="nav-btn" style="text-decoration:none;color:inherit;">Dashboard</a>
+        <a href="kalender.php" class="nav-btn" style="text-decoration:none;color:inherit;">Kalender</a>
+        <a href="beschikbaarheid.php" class="nav-btn" style="text-decoration:none;color:inherit;">Rooster / Beschikbaarheid</a>
+        <div class="nav-btn active">Profiel</div>
+    </div>
+
+    <?php if (!empty($success_msg)): ?>
+        <div style="background: #d1e7dd; color: #0f5132; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <?= $success_msg ?>
+        </div>
+    <?php endif; ?>
+
+    <?php if (!empty($error_msg)): ?>
+        <div style="background: #f8d7da; color: #842029; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <?= $error_msg ?>
+        </div>
+    <?php endif; ?>
+
+    <div class="les-lijst" style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <h3 style="margin-top:0; border-bottom: 2px solid #f3f4f6; padding-bottom: 10px;"> Instructeur Gegevens</h3>
+        
+        <form action="" method="POST" style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;">
+            
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 200px;">
+                    <label style="display:block; font-weight:bold; margin-bottom:5px;">Voornaam *</label>
+                    <input type="text" name="voornaam" value="<?= htmlspecialchars($instructeur['voornaam']) ?>" required style="width:100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px;">
+                </div>
+                <div style="width: 100px;">
+                    <label style="display:block; font-weight:bold; margin-bottom:5px;">Tussenvoegsel</label>
+                    <input type="text" name="tussenvoegsel" value="<?= htmlspecialchars($instructeur['tussenvoegsel'] ?? '') ?>" style="width:100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px;">
+                </div>
+                <div style="flex: 1; min-width: 200px;">
+                    <label style="display:block; font-weight:bold; margin-bottom:5px;">Achternaam *</label>
+                    <input type="text" name="achternaam" value="<?= htmlspecialchars($instructeur['achternaam']) ?>" required style="width:100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px;">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 250px;">
+                    <label style="display:block; font-weight:bold; margin-bottom:5px;">E-mailadres *</label>
+                    <input type="email" name="email" value="<?= htmlspecialchars($instructeur['email']) ?>" required style="width:100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px;">
+                </div>
+                <div style="flex: 1; min-width: 250px;">
+                    <label style="display:block; font-weight:bold; margin-bottom:5px;">Telefoonnummer *</label>
+                    <input type="text" name="telefoon" value="<?= htmlspecialchars($instructeur['telefoon']) ?>" required style="width:100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px;">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 250px;">
+                    <label style="display:block; font-weight:bold; margin-bottom:5px;">Rol binnen Rijschool</label>
+                    <input type="text" value="<?= ucfirst($instructeur['rol']) ?>" disabled style="width:100%; padding: 10px; border: 1px solid #eee; background:#fafafa; border-radius: 6px; color:#777; font-weight: bold;">
+                </div>
+            </div>
+
+            <div>
+                <label style="display:block; font-weight:bold; margin-bottom:5px;">Bio / Omschrijving (Zichtbaar voor studenten)</label>
+                <textarea name="omschrijving" rows="3" style="width:100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; resize: vertical;"><?= htmlspecialchars($instructeur['omschrijving'] ?? '') ?></textarea>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+
+            <!-- <div>
+                <h3 style="margin-top:0;"> Wachtwoord Wijzigen</h3>
+                <label style="display:block; font-weight:bold; margin-bottom:5px;">Nieuw Wachtwoord (Laat leeg om niet te wijzigen)</label>
+                <input type="password" name="wachtwoord" placeholder="••••••••" style="width:100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px;">
+            </div> -->
+
+            <div style="margin-top: 10px;">
+                <button type="submit" style="background: #1b2940; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold;">
+                     Gegevens Opslaan
+                </button>
+            </div>
+
+        </form>
+    </div>
+
+</div>
+</body>
+</html>

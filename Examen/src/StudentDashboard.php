@@ -1,4 +1,9 @@
 <?php
+if (!isset($_SESSION['userID']) || $_SESSION['rol'] !== 'student') {
+    header("Location: /login.php");
+    exit;
+}
+
 $servername = "mysql";
 $username   = "root";
 $password   = "password";
@@ -89,14 +94,14 @@ $stmtSt->close();
             <h2>👋 <?= htmlspecialchars($naam) ?> <span class="rol-badge badge-student">🚗 Student</span></h2>
             <span>Rijschool Dashboard</span>
         </div>
-        <a href="<?= htmlspecialchars(logout_url(), ENT_QUOTES, 'UTF-8') ?>" class="logout-btn">Uitloggen →</a>
+        <a href="../logout.php" class="logout-btn">Uitloggen →</a>
     </div>
 
     <div class="top-buttons">
         <div class="nav-btn active">Dashboard</div>
         <a href="kalender.php" class="nav-btn" style="text-decoration:none;color:inherit;">Kalender</a>
-        <a href="beschikbaarheid.php" class="nav-btn" style="text-decoration:none;color:inherit;">Rooster</a>
-        <div class="nav-btn">Profiel</div>
+        <!-- <a href="beschikbaarheid.php" class="nav-btn" style="text-decoration:none;color:inherit;">Rooster</a> -->
+        <a href="Profiels.php" class="nav-btn" style="text-decoration:none;color:inherit;">Profiel</a>
         <a href="les_inroosteren.php" class="nav-btn" style="background:#1b2940;color:white;text-decoration:none;">+ Nieuwe les</a>
     </div>
 

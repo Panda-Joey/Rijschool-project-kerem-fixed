@@ -1,4 +1,9 @@
 <?php
+if (!isset($_SESSION['userID']) || $_SESSION['rol'] !== 'instructeur') {
+    header("Location: /login.php");
+    exit;
+}
+
 $servername = "mysql";
 $username   = "root";
 $password   = "password";
@@ -75,14 +80,14 @@ $totaalUren   = $totaalLessen; // Elke les = 1 uur
             <h2>👋 <?= htmlspecialchars($naam) ?> <span class="rol-badge badge-instructeur">🎓 Instructeur</span></h2>
             <span>Rijschool Dashboard</span>
         </div>
-        <a href="<?= htmlspecialchars(logout_url(), ENT_QUOTES, 'UTF-8') ?>" class="logout-btn">Uitloggen →</a>
+        <a href="../logout.php" class="logout-btn">Uitloggen →</a>
     </div>
 
     <div class="top-buttons">
         <div class="nav-btn active">Dashboard</div>
         <a href="kalender.php" class="nav-btn" style="text-decoration:none;color:inherit;">Kalender</a>
         <a href="beschikbaarheid.php" class="nav-btn" style="text-decoration:none;color:inherit;">Rooster</a>
-        <div class="nav-btn">Profiel</div>
+        <a href="Profieli.php" class="nav-btn" style="text-decoration:none;color:inherit;">Profiel</a>
     </div>
 
     <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr);">

@@ -6,6 +6,12 @@ $dbname     = "Eend";
 $conn = new mysqli($servername, $username, $password, $dbname);
 if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
 
+
+if (!isset($_SESSION['userID'])) { header("Location: /login.php"); exit; }
+
+
+
+
 $rol    = $_SESSION['rol'];
 $userID = $_SESSION['userID'];
 $naam   = $_SESSION['naam'];
@@ -14,7 +20,7 @@ $fout   = "";
 
 $dagNamen = ['','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag','Zondag'];
 
-$dashboardLink = srcDashboardPath();
+$dashboardLink = ($rol === 'instructeur') ? 'Instructeurdashboard.php' : 'Studentdashboard.php';
 
 // ── Auto's ophalen ─────────────────────────────────────────
 $autos = [];
@@ -166,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             ('$datum','$tijd:00','$ophaal','$doel','$onderwerpen',$studentID,$instrID,$autoID,0)
                     ");
                     $door   = $rol === 'instructeur' ? "door instructeur ingepland" : "aangevraagd";
-                    $succes = "Les $door op <strong>$datum om $tijd</strong>! <a href='" . htmlspecialchars(srcDashboardPath(), ENT_QUOTES, 'UTF-8') . "'>Naar dashboard →</a>";
+                    $succes = "Les $door op <strong>$datum om $tijd</strong>! <a href='dashboard.php'>Naar dashboard →</a>";
                 }
             }
         }
@@ -190,7 +196,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <h2><?= $rol === 'instructeur' ? '📋 Les inplannen voor leerling' : '📅 Nieuwe les aanvragen' ?></h2>
             <span><?= htmlspecialchars($naam) ?></span>
         </div>
-        <a href="<?= htmlspecialchars(logout_url(), ENT_QUOTES, 'UTF-8') ?>" class="logout-btn">Uitloggen →</a>
+        <a href="../logout.php" class="logout-btn">Uitloggen →</a>
     </div>
 
     <!-- Navigatie: let op correcte sluit-tags -->
