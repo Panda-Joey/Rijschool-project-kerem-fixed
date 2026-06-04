@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS `Eend`.`Autos` (
   `type` VARCHAR(100) NOT NULL,
   `kenteken` VARCHAR(15) NOT NULL,
   `transmissie` TINYINT(4) NOT NULL,
+  `brandstof` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '0=benzine, 1=elektrisch',
   PRIMARY KEY (`autoID`))
 ENGINE = InnoDB;
 

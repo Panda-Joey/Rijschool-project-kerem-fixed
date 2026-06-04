@@ -24,8 +24,12 @@ $dashboardLink = ($rol === 'instructeur') ? 'Instructeurdashboard.php' : 'Studen
 
 // ── Auto's ophalen ─────────────────────────────────────────
 $autos = [];
-$r = $conn->query("SELECT * FROM Autos ORDER BY merk");
-while ($row = $r->fetch_assoc()) $autos[] = $row;
+require_once dirname(__DIR__) . '/includes/autos.php';
+ensureAutosAvailabilityColumns($conn);
+$r = $conn->query("SELECT * FROM Autos ORDER BY beschikbaar DESC, merk, type");
+while ($row = $r->fetch_assoc()) {
+    $autos[] = $row;
+}
 
 // ── Studenten ophalen (instructeur-modus) ──────────────────
 $studenten = [];
@@ -123,6 +127,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$datum || !$tijd || !$instrID || !$studentID || !$autoID || !$ophaal || !$doel) {
         $fout = "Vul alle verplichte velden in.";
     } else {
+        $autoStmt = $conn->prepare("SELECT beschikbaar, statusReden FROM Autos WHERE autoID = ?");
+        $autoStmt->bind_param("i", $autoID);
+        $autoStmt->execute();
+        $autoRow = $autoStmt->get_result()->fetch_assoc();
+        $autoStmt->close();
+        if (!$autoRow || (int) $autoRow['beschikbaar'] !== 1) {
+            $reden = trim($autoRow['statusReden'] ?? '');
+            $fout = $reden !== ''
+                ? "Deze auto is niet beschikbaar: $reden"
+                : "Deze auto is niet beschikbaar.";
+        }
+    }
+    if (!$fout && $datum && $tijd && $instrID && $studentID && $autoID && $ophaal && $doel) {
         $dNr = date('N', strtotime($datum));
         $dNm = $dagNamen[$dNr];
 
@@ -420,12 +437,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <label>🚗 Auto <span style="color:#dc3545;">*</span></label>
                     <select name="autoID" required>
                         <option value="">— Kies een auto —</option>
-                        <?php foreach ($autos as $auto): ?>
-                            <option value="<?= $auto['autoID'] ?>">
-                                <?= htmlspecialchars($auto['merk'] . ' ' . $auto['type'] . ' (' . $auto['kenteken'] . ')') ?>
+                        <?php foreach ($autos as $auto):
+                            $magKiezen = (int) ($auto['beschikbaar'] ?? 1) === 1;
+                            $label = autoLabel($auto);
+                            if (!$magKiezen) {
+                                $reden = trim($auto['statusReden'] ?? '');
+                                $label .= $reden !== '' ? ' — niet beschikbaar: ' . $reden : ' — niet beschikbaar';
+                            }
+                        ?>
+                            <option value="<?= (int) $auto['autoID'] ?>"<?= $magKiezen ? '' : ' disabled' ?>>
+                                <?= htmlspecialchars($label) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
+                    <?php
+                    $beschikbaarAutos = count(array_filter($autos, fn($a) => (int) ($a['beschikbaar'] ?? 1) === 1));
+                    if ($beschikbaarAutos < count($autos)): ?>
+                    <p class="form-hint" style="margin-top:0.35rem;font-size:0.9rem;color:#64748b;">
+                        <?= $beschikbaarAutos ?> van <?= count($autos) ?> lesauto's zijn nu beschikbaar.
+                        Beheer status via <strong>Wagenpark</strong> (admin).
+                    </p>
+                    <?php endif; ?>
                 </div>
 
                 <?php if ($fout): ?>

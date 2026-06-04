@@ -39,6 +39,7 @@ $adminNaam = $_SESSION['naam'] ?? 'Admin';
         <a href="AdminGebruikers.php" class="nav-card">Gebruikers</a>
         <a href="#" class="nav-card">Rooster</a>
         <a href="#" class="nav-card">Profiel</a>
+        <a href="AdminWagenpark.php" class="nav-card">Wagenpark</a>
     </div>
 
 

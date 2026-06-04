@@ -1,0 +1,4 @@
+# Start vanaf de projectroot: docker compose up -d
+# Het echte stack-bestand staat in Examen/ (build-context en volumes zijn daar relatief aan).
+include:
+  - path: Examen/docker-compose.yml

@@ -89,6 +89,8 @@ $roleByPage = [
     'beschikbaarheid.php'      => 'instructeur',
     'AdminDashboard.php'       => 'admin',
     'AdminGebruikers.php'      => 'admin',
+    'AdminWagenpark.php'       => 'admin',
+    'Wagenpark.php'            => 'instructeur',
 ];
 
 if (isset($roleByPage[$page])) {

@@ -16,6 +16,9 @@ CREATE TABLE `Autos` (
   `type` VARCHAR(100) NOT NULL,
   `kenteken` VARCHAR(15) NOT NULL,
   `transmissie` TINYINT(4) NOT NULL,
+  `brandstof` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '0=benzine, 1=elektrisch',
+  `beschikbaar` TINYINT(1) NOT NULL DEFAULT 1,
+  `statusReden` VARCHAR(255) NULL DEFAULT NULL,
   PRIMARY KEY (`autoID`)
 ) ENGINE=InnoDB;
 
@@ -124,11 +127,10 @@ SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
 -- === Seed (Stap3) ===
 USE `Eend`;
 
-INSERT INTO `Autos` (`autoID`, `merk`, `type`, `kenteken`, `transmissie`) VALUES
-(1, 'Volkswagen', 'Golf 8', 'G-123-AA', 1),
-(2, 'Tesla', 'Model 3', 'K-987-ZZ', 0),
-(3, 'Ford', 'Fiesta', 'X-456-BB', 1),
-(4, 'BMW', '1 Serie', 'T-554-KK', 0);
+INSERT INTO `Autos` (`autoID`, `merk`, `type`, `kenteken`, `transmissie`, `brandstof`, `beschikbaar`, `statusReden`) VALUES
+(1, 'Tesla', 'Model 3', 'K-987-ZZ', 0, 1, 1, NULL),
+(2, 'Volkswagen', 'ID.3', 'X-456-BB', 0, 1, 1, NULL),
+(3, 'Ford', 'Fiesta', 'G-123-AA', 1, 0, 1, NULL);
 
 INSERT INTO `instructeurs` (`instructeurID`, `voornaam`, `tussenvoegsel`, `achternaam`, `email`, `wachtwoord`, `telefoon`, `omschrijving`, `rol`) VALUES
 (10, 'Henk', NULL, 'De Vries', 'henk@rijschooleend.nl', '$2y$10$oTCSp7GRKlyBeS2Ptn69iOEIlwfShKpBs5HwXHrxmmjbmAC2xo3lW', '0612345678', 'Ervaren instructeur voor schakelauto\'s.', 'instructeur'),

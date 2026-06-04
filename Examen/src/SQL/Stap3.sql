@@ -2,11 +2,10 @@ USE `Eend`;
 
 -- 1. Dummy data voor `Autos`
 -- Let op: autoID heeft geen AUTO_INCREMENT in jouw script, dus deze vullen we handmatig in.
-INSERT INTO `Autos` (`autoID`, `merk`, `type`, `kenteken`, `transmissie`) VALUES
-(1, 'Volkswagen', 'Golf 8', 'G-123-AA', 1), -- 1 = Handgeschakeld
-(2, 'Tesla', 'Model 3', 'K-987-ZZ', 0),      -- 0 = Automaat
-(3, 'Ford', 'Fiesta', 'X-456-BB', 1),        -- 1 = Handgeschakeld
-(4, 'BMW', '1 Serie', 'T-554-KK', 0);        -- 0 = Automaat
+INSERT INTO `Autos` (`autoID`, `merk`, `type`, `kenteken`, `transmissie`, `brandstof`) VALUES
+(1, 'Tesla', 'Model 3', 'K-987-ZZ', 0, 1),           -- elektrisch, automaat
+(2, 'Volkswagen', 'ID.3', 'X-456-BB', 0, 1),           -- elektrisch, automaat
+(3, 'Ford', 'Fiesta', 'G-123-AA', 1, 0);              -- benzine, handgeschakeld
 
 -- 2. Dummy data voor `instructeurs`
 -- Let op: instructeurID heeft geen AUTO_INCREMENT in jouw script.

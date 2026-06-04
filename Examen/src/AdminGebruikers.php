@@ -185,6 +185,10 @@ $result = $conn->query("
         <a href="#" class="nav-card">
             Profiel
         </a>
+
+        <a href="AdminWagenpark.php" class="nav-card">
+            Wagenpark
+        </a>
     </div>
 
     <!-- TOEVOEGEN BUTTON -->

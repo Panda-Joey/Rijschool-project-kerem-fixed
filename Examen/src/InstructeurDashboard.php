@@ -88,6 +88,7 @@ $totaalUren   = $totaalLessen; // Elke les = 1 uur
         <a href="kalender.php" class="nav-btn" style="text-decoration:none;color:inherit;">Kalender</a>
         <a href="beschikbaarheid.php" class="nav-btn" style="text-decoration:none;color:inherit;">Rooster</a>
         <a href="Profieli.php" class="nav-btn" style="text-decoration:none;color:inherit;">Profiel</a>
+        <a href="Wagenpark.php" class="nav-btn" style="text-decoration:none;color:inherit;">Wagenpark</a>
     </div>
 
     <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr);">
