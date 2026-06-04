@@ -111,7 +111,7 @@ foreach ($lessen as $dag => $dagLessen) {
     </div>
 
     <!-- Navigatie -->
-    <div class="top-buttons">
+   <div class="top-buttons">
         <?php if ($rol === 'instructeur'): ?>
             <a href="Instructeurdashboard.php" class="nav-btn">Dashboard</a>
         <?php else: ?>
@@ -119,7 +119,16 @@ foreach ($lessen as $dag => $dagLessen) {
         <?php endif; ?>
         
         <div class="nav-btn active">Kalender</div>
-        <a href="beschikbaarheid.php" class="nav-btn">Rooster</a>
+        
+        <?php if ($rol === 'instructeur'): ?>
+            <a href="beschikbaarheid.php" class="nav-btn">Rooster</a>
+        <?php endif; ?>
+
+        <?php if ($rol === 'instructeur'): ?>
+            <a href="Profieli.php" class="nav-btn">Profiel</a>
+        <?php else: ?>
+            <a href="Profiels.php" class="nav-btn">Profiel</a>
+        <?php endif; ?>
         
         <?php if ($rol === 'instructeur'): ?>
             <a href="les_inroosteren.php" class="nav-btn">+ Les inplannen</a>
