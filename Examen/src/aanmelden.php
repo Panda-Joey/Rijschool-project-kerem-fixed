@@ -29,6 +29,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $wachtwoord    = password_hash($_POST['wachtwoord'] ?? '', PASSWORD_DEFAULT);
     $lespakketID   = (int) ($_POST['lespakketID'] ?? 0);
     $beperking     = isset($_POST['beperking']) ? (int) $_POST['beperking'] : 0;
+    $transmissie   = trim($_POST['transmissie'] ?? 'schakel'); // Opgevangen uit het formulier
+    
     $omschrijving  = ($beperking === 1 && !empty(trim($_POST['omschrijving'] ?? '')))
         ? trim($_POST['omschrijving'])
         : null;
@@ -42,7 +44,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Dit e-mailadres is al geregistreerd.';
         $messageType = 'error';
     } else {
-        $sql = "INSERT INTO studenten
+        // SQL-query aangepast om de verplichte 'transmissie' kolom mee te nemen
+       $sql = "INSERT INTO studenten
             (voornaam, tussenvoegsel, achternaam, email, wachtwoord, telefoon, beperking, omschrijving, geboortedatum, status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')";
 
@@ -142,6 +145,24 @@ $active = 'aanmelden';
                             <label for="geboortedatum">Geboortedatum</label>
                             <input type="date" id="geboortedatum" name="geboortedatum" required
                                 value="<?= htmlspecialchars($_POST['geboortedatum'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                        </div>
+                    </section>
+
+                    <section class="form-section">
+                        <p class="form-section__title">Type auto (Transmissie)</p>
+                        <p class="form-note">In wat voor soort auto wil je lestoepassingen volgen?</p>
+
+                        <div class="radio-group">
+                            <label>
+                                <input type="radio" name="transmissie" value="schakel"
+                                    <?= ($_POST['transmissie'] ?? 'schakel') === 'schakel' ? 'checked' : '' ?>>
+                                Handgeschakeld
+                            </label>
+                            <label>
+                                <input type="radio" name="transmissie" value="automaat"
+                                    <?= ($_POST['transmissie'] ?? '') === 'automaat' ? 'checked' : '' ?>>
+                                Automaat
+                            </label>
                         </div>
                     </section>
 
