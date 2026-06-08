@@ -17,88 +17,218 @@ if ($conn->connect_error) {
 }
 
 $adminNaam = "Admin";
+if (isset($_POST['toevoegen'])) {
 
-// Actie: Gebruiker Toevoegen
-if(isset($_POST['toevoegen'])){
     $rol           = $_POST['add_rol'] ?? 'student';
     $voornaam      = $_POST['add_voornaam'] ?? '';
     $tussenvoegsel = $_POST['add_tussenvoegsel'] ?? '';
     $achternaam    = $_POST['add_achternaam'] ?? '';
     $email         = $_POST['add_email'] ?? '';
-    $wachtwoord    = $_POST['add_wachtwoord'] ?? ''; 
+    $wachtwoord    = $_POST['add_wachtwoord'] ?? '';
     $telefoon      = $_POST['add_telefoon'] ?? '';
-    $omschrijving  = $_POST['add_omschrijving'] ?? ''; // FIX: omschrijving opgevangen
+    $omschrijving  = $_POST['add_omschrijving'] ?? '';
 
     if ($rol === 'student') {
-        $beperking    = isset($_POST['add_beperking']) ? intval($_POST['add_beperking']) : 0;
-        $geboortedatum = !empty($_POST['add_geboortedatum']) ? $_POST['add_geboortedatum'] : null; // FIX: geboortedatum opgevangen
-        $lespakketID   = !empty($_POST['add_lespakket']) ? intval($_POST['add_lespakket']) : null; // FIX: lespakket opgevangen
-        $statusStudent = 'aangemeld'; 
 
-        $statusStudent = 'actief';
-        
-        // Voeg de student toe inclusief omschrijving en geboortedatum
+        $beperking     = isset($_POST['add_beperking']) ? intval($_POST['add_beperking']) : 0;
+        $geboortedatum = !empty($_POST['add_geboortedatum']) ? $_POST['add_geboortedatum'] : null;
+        $lespakketID   = !empty($_POST['add_lespakket']) ? intval($_POST['add_lespakket']) : null;
+
+        $statusStudent = 'pending';
+
         $stmt = $conn->prepare("
-            INSERT INTO studenten (voornaam, tussenvoegsel, achternaam, email, wachtwoord, telefoon, beperking, omschrijving, geboortedatum, status) 
+            INSERT INTO studenten
+            (voornaam, tussenvoegsel, achternaam, email, wachtwoord, telefoon, beperking, omschrijving, geboortedatum, status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
-        $stmt->bind_param("ssssssisss", $voornaam, $tussenvoegsel, $achternaam, $email, $wachtwoord, $telefoon, $beperking, $omschrijving, $geboortedatum, $statusStudent);
+
+        $stmt->bind_param(
+            "ssssssisss",
+            $voornaam,
+            $tussenvoegsel,
+            $achternaam,
+            $email,
+            $wachtwoord,
+            $telefoon,
+            $beperking,
+            $omschrijving,
+            $geboortedatum,
+            $statusStudent
+        );
+
         $stmt->execute();
-        
-        // FIX: Als er een lespakket is gekozen, koppel deze direct in de tabel 'student_lespakket'
-        $nieuwStudentID = $conn->insert_id; // Haalt het net aangemaakte studentID op
+
+        $nieuwStudentID = $conn->insert_id;
+
         if ($lespakketID && $nieuwStudentID) {
-            $stmtPakket = $conn->prepare("INSERT INTO student_lespakket (studentID, idlespakket, overige_uren) VALUES (?, ?, 0)");
+            $stmtPakket = $conn->prepare("
+                INSERT INTO student_lespakket
+                (studentID, idlespakket, overige_uren)
+                VALUES (?, ?, 0)
+            ");
+
             $stmtPakket->bind_param("ii", $nieuwStudentID, $lespakketID);
             $stmtPakket->execute();
             $stmtPakket->close();
         }
+
         $stmt->close();
+
     } else {
-        // Voeg de instructeur toe inclusief omschrijving
+
         $stmt = $conn->prepare("
-            INSERT INTO instructeurs (voornaam, tussenvoegsel, achternaam, email, wachtwoord, telefoon, omschrijving) 
+            INSERT INTO instructeurs
+            (voornaam, tussenvoegsel, achternaam, email, wachtwoord, telefoon, omschrijving)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ");
-        $stmt->bind_param("sssssss", $voornaam, $tussenvoegsel, $achternaam, $email, $wachtwoord, $telefoon, $omschrijving);
+
+        $stmt->bind_param(
+            "sssssss",
+            $voornaam,
+            $tussenvoegsel,
+            $achternaam,
+            $email,
+            $wachtwoord,
+            $telefoon,
+            $omschrijving
+        );
+
         $stmt->execute();
         $stmt->close();
     }
-    
 
+    exit();
 }
 
-// Actie: Bewerken
-if(isset($_POST['bewerken'])){
-    $userID        = $_POST['studentID']; 
-    $rol           = $_POST['rol'] ?? 'student'; 
-    $voornaam      = $_POST['voornaam'] ?? '';
-    $tussenvoegsel = $_POST['tussenvoegsel'] ?? '';
-    $achternaam    = $_POST['achternaam'] ?? '';
-    $email         = $_POST['email'] ?? '';
-    $wachtwoord    = $_POST['wachtwoord'] ?? ''; 
-    $telefoon      = $_POST['telefoon'] ?? '';
 
+// bewerken
+if (isset($_POST['bewerken'])) {
+    $rol           = $_POST['rol'];
+    $userID        = intval($_POST['studentID']);
+    $voornaam      = $_POST['voornaam'];
+    $tussenvoegsel = $_POST['tussenvoegsel'];
+    $achternaam    = $_POST['achternaam'];
+    $email         = $_POST['email'];
+    $telefoon      = $_POST['telefoon'];
+    $wachtwoord    = $_POST['wachtwoord'] ?? '';
+    
     if ($rol === 'student') {
-        if(!empty($wachtwoord)){
-            $stmt = $conn->prepare("UPDATE studenten SET voornaam=?, tussenvoegsel=?, achternaam=?, email=?, wachtwoord=?, telefoon=? WHERE studentID=?");
-            $stmt->bind_param("ssssssi", $voornaam, $tussenvoegsel, $achternaam, $email, $wachtwoord, $telefoon, $userID);
-        } else {
-            $stmt = $conn->prepare("UPDATE studenten SET voornaam=?, tussenvoegsel=?, achternaam=?, email=?, telefoon=? WHERE studentID=?");
-            $stmt->bind_param("sssssi", $voornaam, $tussenvoegsel, $achternaam, $email, $telefoon, $userID);
-        }
-    } else {
-        if(!empty($wachtwoord)){
-            $stmt = $conn->prepare("UPDATE instructeurs SET voornaam=?, tussenvoegsel=?, achternaam=?, email=?, wachtwoord=?, telefoon=? WHERE instructeurID=?");
-            $stmt->bind_param("ssssssi", $voornaam, $tussenvoegsel, $achternaam, $email, $wachtwoord, $telefoon, $userID);
-        } else {
-            $stmt = $conn->prepare("UPDATE instructeurs SET voornaam=?, tussenvoegsel=?, achternaam=?, email=?, telefoon=? WHERE instructeurID=?");
-            $stmt->bind_param("sssssi", $voornaam, $tussenvoegsel, $achternaam, $email, $telefoon, $userID);
-        }
-    }
 
-    $stmt->execute();
-    $stmt->close();
+        $result = $conn->query(
+            "SELECT status FROM studenten WHERE studentID = " . $userID
+        );
+
+        $row = $result->fetch_assoc();
+
+        $statusStudent = $_POST['status'] ?? 'actief';
+      
+
+        if (!empty($wachtwoord)) {
+
+            $stmt = $conn->prepare("
+                UPDATE studenten
+                SET voornaam=?,
+                    tussenvoegsel=?,
+                    achternaam=?,
+                    email=?,
+                    wachtwoord=?,
+                    telefoon=?,
+                    status=?
+                WHERE studentID=?
+            ");
+
+            $stmt->bind_param(
+                "sssssssi",
+                $voornaam,
+                $tussenvoegsel,
+                $achternaam,
+                $email,
+                $wachtwoord,
+                $telefoon,
+                $statusStudent,
+                $userID
+            );
+
+        } else {
+
+            $stmt = $conn->prepare("
+                UPDATE studenten
+                SET voornaam=?,
+                    tussenvoegsel=?,
+                    achternaam=?,
+                    email=?,
+                    telefoon=?,
+                    status=?
+                WHERE studentID=?
+            ");
+
+            $stmt->bind_param(
+                "ssssssi",
+                $voornaam,
+                $tussenvoegsel,
+                $achternaam,
+                $email,
+                $telefoon,
+                $statusStudent,
+                $userID
+            );
+        }
+
+        $stmt->execute();    
+        $stmt->close();
+
+    } else {
+
+        if (!empty($wachtwoord)) {
+
+            $stmt = $conn->prepare("
+                UPDATE instructeurs
+                SET voornaam=?,
+                    tussenvoegsel=?,
+                    achternaam=?,
+                    email=?,
+                    wachtwoord=?,
+                    telefoon=?
+                WHERE instructeurID=?
+            ");
+
+            $stmt->bind_param(
+                "ssssssi",
+                $voornaam,
+                $tussenvoegsel,
+                $achternaam,
+                $email,
+                $wachtwoord,
+                $telefoon,
+                $userID
+            );
+
+        } else {
+
+            $stmt = $conn->prepare("
+                UPDATE instructeurs
+                SET voornaam=?,
+                    tussenvoegsel=?,
+                    achternaam=?,
+                    email=?,
+                    telefoon=?
+                WHERE instructeurID=?
+            ");
+
+            $stmt->bind_param(
+                "sssssi",
+                $voornaam,
+                $tussenvoegsel,
+                $achternaam,
+                $email,
+                $telefoon,
+                $userID
+            );
+        }
+
+        $stmt->execute();
+        $stmt->close();
+    }
     header("Location: AdminGebruikers.php");
     exit();
 }
@@ -135,11 +265,9 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete') {
 
             $stmt = $conn->prepare("DELETE FROM instructeurs WHERE instructeurID = ?");
         }
-        
         $stmt->bind_param("i", $id);
         $stmt->execute();
         $stmt->close();
-        
         header("Location: AdminGebruikers.php");
         exit();
     }
@@ -203,26 +331,27 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete') {
             </thead>
             <tbody>
             <?php
-            $status = $_GET['status'] ?? '';
+            $statusFilter = $_GET['status'] ?? '';
 
-            if ($status == 'actieve-studenten') {
-                $query = "SELECT s.studentID, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, l.naam AS lespakket 
+            // FIX: s.status is nu overal toegevoegd aan de SELECT zodat PHP weet wat de échte status is
+            if ($statusFilter == 'actieve-studenten') {
+                $query = "SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, l.naam AS lespakket 
                           FROM studenten s 
                           LEFT JOIN student_lespakket sl ON s.studentID = sl.studentID 
                           LEFT JOIN lespakket l ON sl.idlespakket = l.idlespakket
                           WHERE s.status = 'actief'";
             } 
-            elseif ($status == 'niewe-studenten') {
-                $query = "SELECT s.studentID, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, l.naam AS lespakket 
+            elseif ($statusFilter == 'niewe-studenten') {
+                $query = "SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, l.naam AS lespakket 
                           FROM studenten s 
                           LEFT JOIN student_lespakket sl ON s.studentID = sl.studentID 
                           LEFT JOIN lespakket l ON sl.idlespakket = l.idlespakket
-                          WHERE s.status = 'aangemeld'";
+                          WHERE s.status = 'pending'";
             } 
-            elseif ($status == 'instructeurs') {
+            elseif ($statusFilter == 'instructeurs') {
                 $query = "SELECT instructeurID, voornaam, tussenvoegsel, achternaam, email, telefoon FROM instructeurs";
             } else {
-                $query = "SELECT s.studentID, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, l.naam AS lespakket 
+                $query = "SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, l.naam AS lespakket 
                           FROM studenten s 
                           LEFT JOIN student_lespakket sl ON s.studentID = sl.studentID 
                           LEFT JOIN lespakket l ON sl.idlespakket = l.idlespakket";
@@ -243,13 +372,21 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete') {
                     echo "<td>" . htmlspecialchars($volledigeNaam) . "</td>";
                     echo "<td>" . htmlspecialchars($row['email'] ?? '') . "</td>";
                     echo "<td>" . htmlspecialchars($row['telefoon'] ?? '') . "</td>";
-                    
                     echo "<td>" . htmlspecialchars($row['lespakket'] ?? '-') . "</td>";
-                    echo "<td>" . ($huidigeRol == 'instructeur' ? 'Ja' : ($status == 'niewe-studenten' ? 'Nee' : 'Ja')) . "</td>";
+                    
+                    // FIX: De 'actief' kolom kijkt nu ALTIJD naar de echte status in de DB ('actief' = Ja, 'pending' = Nee)
+                    if ($huidigeRol === 'instructeur') {
+                        echo "<td>Ja</td>";
+                    } else {
+                        $dbStatus = $row['status'] ?? 'pending';
+                        echo "<td>" . ($dbStatus === 'actief' ? 'Ja' : 'Nee') . "</td>";
+                    }
+
                     echo "<td>" . (isset($row['beperking']) && $row['beperking'] == 1 ? 'Ja' : 'Nee') . "</td>";
                     
                     echo "<td>";
                     echo "  <div class='action-buttons'>";
+                    // FIX: We geven nu ook de 'status' mee aan de openEditModal() JavaScript functie
                     echo "    <button type='button' class='btn-edit' onclick='openEditModal(".json_encode([
                                   'id' => $id,
                                   'rol' => $huidigeRol,
@@ -257,7 +394,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete') {
                                   'tussenvoegsel' => $row['tussenvoegsel'] ?? '',
                                   'achternaam' => $row['achternaam'] ?? '',
                                   'email' => $row['email'] ?? '',
-                                  'telefoon' => $row['telefoon'] ?? ''
+                                  'telefoon' => $row['telefoon'] ?? '',
+                                  'status' => $row['status'] ?? 'pending' 
                               ]).")'>Bewerken</button>";
                     echo "    <a href='AdminGebruikers.php?action=delete&id=" . $id . "' class='btn-delete' onclick='return confirm(\"Weet je zeker dat je dit wilt verwijderen?\");'>Verwijderen</a>";
                     echo "  </div>";
@@ -318,7 +456,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete') {
             <input type="password" name="add_wachtwoord" required>
         </div>
 
-
         <div id="student_extra_fields">
             <div class="modal-form-group">
                 <label>Geboortedatum:</label>
@@ -347,11 +484,11 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete') {
                     <option value="1">Ja (Medische indicatie)</option>
                 </select>
             </div>
-        <div class="modal-form-group">
-            <label>Omschrijving:</label>
-            <input type="text" name="add_omschrijving" placeholder="omschrijving van de beperking" >
-        </div>
-
+            
+            <div class="modal-form-group">
+                <label>Omschrijving:</label>
+                <input type="text" name="add_omschrijving" placeholder="omschrijving van je beperking">
+            </div>
         </div>
 
         <button type="submit" name="toevoegen" class="btn-submit">Gebruiker Opslaan</button>
@@ -368,6 +505,14 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete') {
     <form method="POST" action="AdminGebruikers.php" class="modal-form">
         <input type="hidden" name="studentID" id="edit_studentID">
         <input type="hidden" name="rol" id="edit_rol">
+
+        <div class="modal-form-group" id="edit_status_group">
+            <label for="edit_status">Account Status:</label>
+            <select name="status" id="edit_status" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+                <option value="pending">Pending (Aangemeld)</option>
+                <option value="actief">Actief</option>
+            </select>
+        </div>
 
         <div class="modal-form-group">
             <label>Voornaam:</label>
@@ -424,6 +569,7 @@ function toggleAddFields() {
     }
 }
 
+// FIX: Deze JavaScript-functie vangt nu ook de 'status' op en zet de dropdown op de juiste waarde
 function openEditModal(data) {
     document.getElementById('edit_studentID').value = data.id;
     document.getElementById('edit_rol').value = data.rol; 
@@ -432,6 +578,14 @@ function openEditModal(data) {
     document.getElementById('edit_achternaam').value = data.achternaam;
     document.getElementById('edit_email').value = data.email;
     document.getElementById('edit_telefoon').value = data.telefoon || '';
+
+    var statusGroup = document.getElementById('edit_status_group');
+    if (data.rol === 'student') {
+        statusGroup.style.display = 'block';
+        document.getElementById('edit_status').value = data.status; // Zet de geselecteerde status
+    } else {
+        statusGroup.style.display = 'none';
+    }
 
     document.getElementById('editModal').classList.add('show');
 }
