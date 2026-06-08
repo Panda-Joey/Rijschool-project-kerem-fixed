@@ -78,7 +78,7 @@ function setLegacySessionForSrc($email, $role, $user = null)
     }
 
     $_SESSION['rol'] = legacyRoleFromAppRole($role);
-    $_SESSION['naam'] = displayNameFromEmail($email);
+    $_SESSION['naam'] = $user['naam'] ?? displayNameFromEmail($email);
 }
 
 function logout(): void
@@ -128,14 +128,87 @@ function attemptLogin($email, $password)
 
     $user = DEMO_USERS[$email] ?? null;
 
-    if ($user === null || !password_verify($password, DEMO_PASSWORD_HASH)) {
-        return 'Ongeldige e-mail of wachtwoord.';
+    if ($user !== null && password_verify($password, DEMO_PASSWORD_HASH)) {
+        $_SESSION['user'] = $email;
+        $_SESSION['role'] = $user['role'];
+        setLegacySessionForSrc($email, $user['role'], $user);
+        touchSessionActivity();
+
+        return null;
     }
 
-    $_SESSION['user'] = $email;
-    $_SESSION['role'] = $user['role'];
-    setLegacySessionForSrc($email, $user['role'], $user);
-    touchSessionActivity();
+    require_once __DIR__ . '/database.php';
+    $conn = getDbConnection();
 
-    return null;
+    $stmt = $conn->prepare(
+        'SELECT studentID, voornaam, tussenvoegsel, achternaam, wachtwoord, status
+         FROM studenten WHERE email = ? LIMIT 1'
+    );
+    $stmt->bind_param('s', $email);
+    $stmt->execute();
+    $student = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if ($student !== null) {
+        if (!password_verify($password, $student['wachtwoord'])) {
+            return 'Ongeldige e-mail of wachtwoord.';
+        }
+        if ($student['status'] === 'pending') {
+            return 'Je account is nog niet geactiveerd. De rijschool moet je account eerst goedkeuren.';
+        }
+
+        $naam = trim(
+            $student['voornaam'] . ' '
+            . ($student['tussenvoegsel'] ?? '') . ' '
+            . $student['achternaam']
+        );
+        $dbUser = [
+            'role'   => 'leerling',
+            'userID' => (int) $student['studentID'],
+            'naam'   => $naam,
+        ];
+
+        $_SESSION['user'] = $email;
+        $_SESSION['role'] = 'leerling';
+        setLegacySessionForSrc($email, 'leerling', $dbUser);
+        touchSessionActivity();
+
+        return null;
+    }
+
+    $stmt = $conn->prepare(
+        'SELECT instructeurID, voornaam, tussenvoegsel, achternaam, wachtwoord, rol
+         FROM instructeurs WHERE email = ? LIMIT 1'
+    );
+    $stmt->bind_param('s', $email);
+    $stmt->execute();
+    $instructeur = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if ($instructeur !== null) {
+        if (!password_verify($password, $instructeur['wachtwoord'])) {
+            return 'Ongeldige e-mail of wachtwoord.';
+        }
+
+        $role = $instructeur['rol'] === 'admin' ? 'eigenaar' : 'instructeur';
+        $naam = trim(
+            $instructeur['voornaam'] . ' '
+            . ($instructeur['tussenvoegsel'] ?? '') . ' '
+            . $instructeur['achternaam']
+        );
+        $dbUser = [
+            'role'   => $role,
+            'userID' => (int) $instructeur['instructeurID'],
+            'naam'   => $naam,
+        ];
+
+        $_SESSION['user'] = $email;
+        $_SESSION['role'] = $role;
+        setLegacySessionForSrc($email, $role, $dbUser);
+        touchSessionActivity();
+
+        return null;
+    }
+
+    return 'Ongeldige e-mail of wachtwoord.';
 }

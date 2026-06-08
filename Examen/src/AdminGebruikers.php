@@ -1,13 +1,10 @@
 <?php
-$servername = "mysql";
-$username   = "root";
-$password   = "password";
-$dbname     = "Eend";
-$conn = new mysqli($servername, $username, $password, $dbname);
-if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
+require_once dirname(__DIR__) . '/includes/database.php';
 
-
+$conn = getDbConnection();
 $adminNaam = $_SESSION['naam'] ?? 'Admin';
+$message = '';
+$messageType = '';
 
 $pakketten = [];
 $pakketResult = $conn->query("SELECT idlespakket, naam, uren FROM lespakket ORDER BY naam");
@@ -24,105 +21,158 @@ if (isset($_POST['toevoegen']) || isset($_POST['bewerken'])) {
     $telefoon      = trim($_POST['telefoon'] ?? '');
     $beperking     = (int) ($_POST['beperking'] ?? 0);
     $omschrijving  = trim($_POST['omschrijving'] ?? '') ?: null;
-    $geboortedatum = $_POST['geboortedatum'] ?? date('Y-m-d');
+    $geboortedatum = trim($_POST['geboortedatum'] ?? '');
     $status        = $_POST['status'] ?? 'pending';
     $lespakketID   = (int) ($_POST['lespakketID'] ?? 0);
+    $isToevoegen   = isset($_POST['toevoegen']);
+    $studentID     = (int) ($_POST['studentID'] ?? 0);
 
-    if (isset($_POST['toevoegen'])) {
-        $hash = password_hash($wachtwoord, PASSWORD_DEFAULT);
-        $stmt = $conn->prepare("
-            INSERT INTO studenten (
-                voornaam, tussenvoegsel, achternaam, email, wachtwoord,
-                telefoon, beperking, omschrijving, geboortedatum, status
-            ) VALUES (?,?,?,?,?,?,?,?,?,?)
-        ");
-        $stmt->bind_param(
-            "ssssssisss",
-            $voornaam,
-            $tussenvoegsel,
-            $achternaam,
-            $email,
-            $hash,
-            $telefoon,
-            $beperking,
-            $omschrijving,
-            $geboortedatum,
-            $status
-        );
-        $stmt->execute();
-        $studentID = (int) $conn->insert_id;
-        $stmt->close();
-
-        if ($lespakketID > 0 && $studentID > 0) {
-            $stmt2 = $conn->prepare("
-                INSERT INTO student_lespakket (studentID, idlespakket, overige_uren)
-                SELECT ?, idlespakket, uren FROM lespakket WHERE idlespakket = ?
-            ");
-            $stmt2->bind_param("ii", $studentID, $lespakketID);
-            $stmt2->execute();
-            $stmt2->close();
-        }
+    $fouten = [];
+    if ($voornaam === '') {
+        $fouten[] = 'Voornaam is verplicht.';
+    }
+    if ($achternaam === '') {
+        $fouten[] = 'Achternaam is verplicht.';
+    }
+    if ($email === '') {
+        $fouten[] = 'E-mail is verplicht.';
+    }
+    if ($telefoon === '') {
+        $fouten[] = 'Telefoon is verplicht.';
+    }
+    if ($geboortedatum === '') {
+        $fouten[] = 'Geboortedatum is verplicht.';
+    }
+    if ($isToevoegen && $wachtwoord === '') {
+        $fouten[] = 'Wachtwoord is verplicht bij een nieuwe student.';
+    }
+    if (!$isToevoegen && $studentID <= 0) {
+        $fouten[] = 'Geen geldige student geselecteerd om te bewerken.';
     }
 
-    if (isset($_POST['bewerken'])) {
-        $studentID = (int) ($_POST['studentID'] ?? 0);
+    if ($fouten === []) {
+        $check = $conn->prepare("SELECT studentID FROM studenten WHERE email = ? AND studentID != ?");
+        $checkStudentID = $isToevoegen ? 0 : $studentID;
+        $check->bind_param("si", $email, $checkStudentID);
+        $check->execute();
+        $bestaat = $check->get_result()->num_rows > 0;
+        $check->close();
 
-        if ($wachtwoord !== '') {
-            $hash = password_hash($wachtwoord, PASSWORD_DEFAULT);
-            $stmt = $conn->prepare("
-                UPDATE studenten SET
-                    voornaam=?, tussenvoegsel=?, achternaam=?, email=?, wachtwoord=?,
-                    telefoon=?, beperking=?, omschrijving=?, geboortedatum=?, status=?
-                WHERE studentID=?
-            ");
-            $stmt->bind_param(
-                "ssssssisssi",
-                $voornaam,
-                $tussenvoegsel,
-                $achternaam,
-                $email,
-                $hash,
-                $telefoon,
-                $beperking,
-                $omschrijving,
-                $geboortedatum,
-                $status,
-                $studentID
-            );
+        if ($bestaat) {
+            $message = 'Dit e-mailadres is al in gebruik.';
+            $messageType = 'fout';
         } else {
-            $stmt = $conn->prepare("
-                UPDATE studenten SET
-                    voornaam=?, tussenvoegsel=?, achternaam=?, email=?,
-                    telefoon=?, beperking=?, omschrijving=?, geboortedatum=?, status=?
-                WHERE studentID=?
-            ");
-            $stmt->bind_param(
-                "sssssisssi",
-                $voornaam,
-                $tussenvoegsel,
-                $achternaam,
-                $email,
-                $telefoon,
-                $beperking,
-                $omschrijving,
-                $geboortedatum,
-                $status,
-                $studentID
-            );
-        }
-        $stmt->execute();
-        $stmt->close();
+            try {
+                if ($isToevoegen) {
+                    $hash = password_hash($wachtwoord, PASSWORD_DEFAULT);
+                    $stmt = $conn->prepare("
+                        INSERT INTO studenten (
+                            voornaam, tussenvoegsel, achternaam, email, wachtwoord,
+                            telefoon, beperking, omschrijving, geboortedatum, status
+                        ) VALUES (?,?,?,?,?,?,?,?,?,?)
+                    ");
+                    $stmt->bind_param(
+                        "ssssssisss",
+                        $voornaam,
+                        $tussenvoegsel,
+                        $achternaam,
+                        $email,
+                        $hash,
+                        $telefoon,
+                        $beperking,
+                        $omschrijving,
+                        $geboortedatum,
+                        $status
+                    );
+                    $stmt->execute();
+                    $studentID = (int) $conn->insert_id;
+                    $stmt->close();
 
-        if ($lespakketID > 0) {
-            $conn->query("DELETE FROM student_lespakket WHERE studentID = $studentID");
-            $stmt2 = $conn->prepare("
-                INSERT INTO student_lespakket (studentID, idlespakket, overige_uren)
-                SELECT ?, idlespakket, uren FROM lespakket WHERE idlespakket = ?
-            ");
-            $stmt2->bind_param("ii", $studentID, $lespakketID);
-            $stmt2->execute();
-            $stmt2->close();
+                    if ($lespakketID > 0 && $studentID > 0) {
+                        $stmt2 = $conn->prepare("
+                            INSERT INTO student_lespakket (studentID, idlespakket, overige_uren)
+                            SELECT ?, idlespakket, uren FROM lespakket WHERE idlespakket = ?
+                        ");
+                        $stmt2->bind_param("ii", $studentID, $lespakketID);
+                        $stmt2->execute();
+                        $stmt2->close();
+                    }
+
+                    $message = 'Student succesvol toegevoegd.';
+                    $messageType = 'ok';
+                } else {
+                    if ($wachtwoord !== '') {
+                        $hash = password_hash($wachtwoord, PASSWORD_DEFAULT);
+                        $stmt = $conn->prepare("
+                            UPDATE studenten SET
+                                voornaam=?, tussenvoegsel=?, achternaam=?, email=?, wachtwoord=?,
+                                telefoon=?, beperking=?, omschrijving=?, geboortedatum=?, status=?
+                            WHERE studentID=?
+                        ");
+                        $stmt->bind_param(
+                            "ssssssisssi",
+                            $voornaam,
+                            $tussenvoegsel,
+                            $achternaam,
+                            $email,
+                            $hash,
+                            $telefoon,
+                            $beperking,
+                            $omschrijving,
+                            $geboortedatum,
+                            $status,
+                            $studentID
+                        );
+                    } else {
+                        $stmt = $conn->prepare("
+                            UPDATE studenten SET
+                                voornaam=?, tussenvoegsel=?, achternaam=?, email=?,
+                                telefoon=?, beperking=?, omschrijving=?, geboortedatum=?, status=?
+                            WHERE studentID=?
+                        ");
+                        $stmt->bind_param(
+                            "sssssisssi",
+                            $voornaam,
+                            $tussenvoegsel,
+                            $achternaam,
+                            $email,
+                            $telefoon,
+                            $beperking,
+                            $omschrijving,
+                            $geboortedatum,
+                            $status,
+                            $studentID
+                        );
+                    }
+                    $stmt->execute();
+                    $stmt->close();
+
+                    if ($lespakketID > 0) {
+                        $stmtDel = $conn->prepare("DELETE FROM student_lespakket WHERE studentID = ?");
+                        $stmtDel->bind_param("i", $studentID);
+                        $stmtDel->execute();
+                        $stmtDel->close();
+
+                        $stmt2 = $conn->prepare("
+                            INSERT INTO student_lespakket (studentID, idlespakket, overige_uren)
+                            SELECT ?, idlespakket, uren FROM lespakket WHERE idlespakket = ?
+                        ");
+                        $stmt2->bind_param("ii", $studentID, $lespakketID);
+                        $stmt2->execute();
+                        $stmt2->close();
+                    }
+
+                    $message = 'Student bijgewerkt.';
+                    $messageType = 'ok';
+                }
+            } catch (mysqli_sql_exception $e) {
+                $message = 'Opslaan mislukt: ' . $e->getMessage();
+                $messageType = 'fout';
+            }
         }
+    } else {
+        $message = implode(' ', $fouten);
+        $messageType = 'fout';
     }
 }
 
@@ -197,6 +247,12 @@ $result = $conn->query("
         + Student toevoegen
     </button>
 
+    <?php if ($message !== ''): ?>
+        <div class="flash flash-<?= htmlspecialchars($messageType, ENT_QUOTES, 'UTF-8') ?>">
+            <?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?>
+        </div>
+    <?php endif; ?>
+
     <!-- FORM -->
 
     <div class="form-box" id="formBox">
@@ -210,6 +266,7 @@ $result = $conn->query("
             name="voornaam"
             id="voornaam"
             placeholder="Voornaam"
+            required
             >
 
             <input
@@ -224,6 +281,7 @@ $result = $conn->query("
             name="achternaam"
             id="achternaam"
             placeholder="Achternaam"
+            required
             >
 
             <input
@@ -231,6 +289,7 @@ $result = $conn->query("
             name="email"
             id="email"
             placeholder="Email"
+            required
             >
 
             <input
@@ -245,6 +304,7 @@ $result = $conn->query("
             name="telefoon"
             id="telefoon"
             placeholder="Telefoon"
+            required
             >
 
             <input
@@ -266,6 +326,7 @@ $result = $conn->query("
             type="date"
             name="geboortedatum"
             id="geboortedatum"
+            required
             >
 
             <label>Status</label>
@@ -383,6 +444,8 @@ function openAddForm(){
     document.getElementById("editBtn")
     .style.display = "none";
 
+    document.getElementById("wachtwoord").required = true;
+
     clearForm();
 }
 
@@ -424,6 +487,8 @@ function editStudent(student){
 
     document.getElementById("editBtn")
     .style.display = "inline-block";
+
+    document.getElementById("wachtwoord").required = false;
 }
 
 function clearForm(){
