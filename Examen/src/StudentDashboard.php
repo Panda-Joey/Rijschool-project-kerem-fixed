@@ -5,7 +5,7 @@ if (!isset($_SESSION['userID'])) {
     exit;
 }
 
-$servername = "127.0.0.1";
+$servername = "mysql";
 $username   = "root";
 $password   = "password";
 $dbname     = "Eend";
@@ -104,7 +104,7 @@ $totaalUren   = $totaalLessen * 2; // Elke les duurt 2 uur
     <!-- Nav buttons -->
     <div class="top-buttons">
         <div class="nav-btn active">Dashboard</div>
-        <a href="index.php" class="nav-btn" style="text-decoration:none;color:inherit;">Kalender</a>
+        <a href="kalender.php" class="nav-btn" style="text-decoration:none;color:inherit;">Kalender</a>
         <a href="beschikbaarheid.php" class="nav-btn" style="text-decoration:none;color:inherit;">Rooster</a>
         <div class="nav-btn">Profiel</div>
         <?php if ($rol === 'student'): ?>
