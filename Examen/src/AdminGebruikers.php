@@ -121,7 +121,7 @@ if (isset($_POST['bewerken'])) {
         $row = $result->fetch_assoc();
 
         $statusStudent = $_POST['status'] ?? 'actief';
-      
+        // alles aanpassen
 
         if (!empty($wachtwoord)) {
 
@@ -150,7 +150,7 @@ if (isset($_POST['bewerken'])) {
             );
 
         } else {
-
+            // alles bewerken behalve 
             $stmt = $conn->prepare("
                 UPDATE studenten
                 SET voornaam=?,
@@ -178,6 +178,7 @@ if (isset($_POST['bewerken'])) {
         $stmt->close();
 
     } else {
+        // zonder wachtwoord bijwerken
 
         if (!empty($wachtwoord)) {
 
