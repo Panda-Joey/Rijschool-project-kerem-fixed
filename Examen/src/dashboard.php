@@ -1,7 +1,7 @@
 <?php
 session_start();
 if (!isset($_SESSION['userID'])) {
-    header("Location: /login.php");
+    header("Location: login.php");
     exit;
 }
 
@@ -12,6 +12,21 @@ $dbname     = "Eend";
 $conn = new mysqli($servername, $username, $password, $dbname);
 if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
 
+/* --- Goedkeuring verwerken: instructeur klikt op Goedkeuren naast een les --- */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['goedkeur_lesID'])) {
+    $lesID     = intval($_POST['goedkeur_lesID']);
+    $studentID = intval($_POST['goedkeur_studentID']);
+
+    // Markeer les als goedgekeurd en sla tijdstip op
+    $conn->query("UPDATE lessen SET goedgekeurd = 1, goedgekeurd_op = NOW() WHERE lesID = $lesID");
+
+    // Trek 2 uur af van het pakket (minimum 0)
+    $conn->query("UPDATE student_lespakket SET overige_uren = GREATEST(0, overige_uren - 2) WHERE studentID = $studentID");
+
+    // Herlaad pagina zodat de knop verdwijnt
+    header("Location: " . $_SERVER['REQUEST_URI']);
+    exit;
+}
 
 $rol    = $_SESSION['rol'];
 $userID = $_SESSION['userID'];
@@ -40,6 +55,7 @@ if ($rol === 'instructeur') {
         AND MONTH(lesDatum) = $maand
         AND YEAR(lesDatum)  = $jaar
         AND vervallen = 0
+        AND (lessen.goedgekeurd IS NULL OR lessen.goedgekeurd = 0 OR lesDatum >= CURDATE())
         ORDER BY lesDatum ASC, lestijd ASC
     ";
 } else {
@@ -75,11 +91,7 @@ foreach ($lessen as $les) {
 
 // ── Stats ────────────────────────────────────────────────────
 $totaalLessen = count($lessen);
-$totaalUren   = 0;
-foreach ($lessen as $les) {
-    // Elke les = 1 uur (pas aan als je een duur-kolom hebt)
-    $totaalUren++;
-}
+$totaalUren   = $totaalLessen * 2; // Elke les duurt 2 uur
 ?>
 <!DOCTYPE html>
 <html lang="nl">
@@ -103,15 +115,18 @@ foreach ($lessen as $les) {
             </h2>
             <span>Rijschool Dashboard</span>
         </div>
-        <a href="../logout.php" class="logout-btn">Uitloggen →</a>
+        <a href="logout.php" class="logout-btn">Uitloggen →</a>
     </div>
 
     <!-- Nav buttons -->
     <div class="top-buttons">
         <div class="nav-btn active">Dashboard</div>
-        <a href="kalender.php" class="nav-btn" style="text-decoration:none;color:inherit;">Kalender</a>
+        <a href="index.php" class="nav-btn" style="text-decoration:none;color:inherit;">Kalender</a>
         <a href="beschikbaarheid.php" class="nav-btn" style="text-decoration:none;color:inherit;">Rooster</a>
         <div class="nav-btn">Profiel</div>
+        <?php if ($rol === 'instructeur'): ?>
+        <a href="goedkeuren.php" class="nav-btn" style="background:#28a745;color:white;text-decoration:none;">✅ Goedkeuren</a>
+        <?php endif; ?>
         <?php if ($rol === 'student'): ?>
         <a href="les_inroosteren.php" class="nav-btn" style="background:#1b2940;color:white;text-decoration:none;">+ Nieuwe les</a>
         <?php endif; ?>
@@ -128,8 +143,18 @@ foreach ($lessen as $les) {
             <div class="label">Lesuren gepland</div>
         </div>
         <?php if ($rol === 'student'):
-            $r = $conn->query("SELECT lesUren, lesPakket FROM studenten WHERE studentID = $userID");
-            $st = $r->fetch_assoc();
+            /* Pakket info via student_lespakket JOIN lespakket */
+            $stmtPakket = $conn->prepare("
+                SELECT lp.naam AS lesPakket, lp.uren AS lesUren, sl.overige_uren
+                FROM student_lespakket sl
+                JOIN lespakket lp ON sl.idlespakket = lp.idlespakket
+                WHERE sl.studentID = ?
+                LIMIT 1
+            ");
+            $stmtPakket->bind_param("i", $userID);
+            $stmtPakket->execute();
+            $st = $stmtPakket->get_result()->fetch_assoc();
+            $stmtPakket->close();
         ?>
         <div class="stat-card">
             <div class="getal"><?= $st['lesUren'] ?? '—' ?></div>
@@ -252,14 +277,27 @@ foreach ($lessen as $les) {
                 </div>
 
                 <!-- Acties (alleen voor instructeur) -->
-                <?php if ($rol === 'instructeur' && !$isVerleden): ?>
+                <?php if ($rol === 'instructeur'): ?>
                 <div class="les-acties">
-                    <a href="wijzig.php?lesID=<?= $les['lesID'] ?>" class="edit" style="text-decoration:none;display:inline-block;text-align:center;">
-                        Wijzig
-                    </a>
-                    <a href="annuleer.php?lesID=<?= $les['lesID'] ?>&maand=<?= $maand ?>" class="cancel" style="text-decoration:none;display:inline-block;text-align:center;">
-                        Annuleer
-                    </a>
+                    <?php if (!$isVerleden): ?>
+                        <!-- Toekomstige les: wijzigen en annuleren -->
+                        <a href="wijzig.php?lesID=<?= $les['lesID'] ?>" class="edit" style="text-decoration:none;display:inline-block;text-align:center;">Wijzig</a>
+                        <a href="annuleer.php?lesID=<?= $les['lesID'] ?>&maand=<?= $maand ?>" class="cancel" style="text-decoration:none;display:inline-block;text-align:center;">Annuleer</a>
+                    <?php elseif (empty($les['goedgekeurd'])): ?>
+                        <!-- Afgelopen les: nog niet goedgekeurd -->
+                        <form method="POST" style="margin:0;">
+                            <input type="hidden" name="goedkeur_lesID"     value="<?= $les['lesID'] ?>">
+                            <input type="hidden" name="goedkeur_studentID" value="<?= $les['studentID'] ?>">
+                            <button type="submit" style="background:#28a745;color:white;border:2px solid #28a745;padding:8px 12px;font-size:11px;font-family:Arial;font-weight:bold;cursor:pointer;white-space:nowrap;">
+                                ✅ Goedkeuren<br><small style="font-weight:normal;">-2 lesuren</small>
+                            </button>
+                        </form>
+                    <?php else: ?>
+                        <!-- Al goedgekeurd -->
+                        <span style="background:#d4edda;color:#155724;border:1px solid #28a745;padding:6px 10px;font-size:10px;font-weight:bold;">
+                            ✅ Goedgekeurd
+                        </span>
+                    <?php endif; ?>
                 </div>
                 <?php endif; ?>
 

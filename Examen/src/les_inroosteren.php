@@ -1,178 +1,244 @@
 <?php
+/* ============================================================
+   les_inroosteren.php
+   Toegankelijk voor zowel studenten als instructeurs.
+
+   STUDENT:  kiest een datum → ziet beschikbare instructeurs
+             → kiest een tijdslot → vult details in
+   INSTRUCTEUR: kiest een datum → ziet zijn eigen tijdslots
+             → kiest een tijdslot → kiest een leerling + details
+
+   Elke les duurt 2 uur. Tijdslots gaan in stappen van 30 minuten.
+   ============================================================ */
+
 session_start();
-$servername = "mysql";
-$username   = "root";
-$password   = "password";
-$dbname     = "Eend";
-$conn = new mysqli($servername, $username, $password, $dbname);
-if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
 
+/* --- Toegangscontrole --- */
+if (!isset($_SESSION['userID'])) {
+    header("Location: login.php");
+    exit;
+}
 
-if (!isset($_SESSION['userID'])) { header("Location: /login.php"); exit; }
+/* --- Database verbinding --- */
+$conn = new mysqli("mysql", "root", "password", "Eend");
+if ($conn->connect_error) die("Verbinding mislukt: " . $conn->connect_error);
 
-
-
-
+/* --- Sessievariabelen --- */
 $rol    = $_SESSION['rol'];
 $userID = $_SESSION['userID'];
 $naam   = $_SESSION['naam'];
+
+/* --- Feedback --- */
 $succes = "";
 $fout   = "";
 
-$dagNamen = ['','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag','Zondag'];
+/* --- Vaste dagvolgorde (index 1=Ma ... 7=Zo, index 0 ongebruikt) --- */
+$dagNamen = ['', 'Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag', 'Zondag'];
 
-$dashboardLink = ($rol === 'instructeur') ? 'Instructeurdashboard.php' : 'Studentdashboard.php';
+/* --- Leerdoelen voor de dropdown --- */
+$doelen = [
+    'Rotondes', 'Snelweg', 'Parkeren', 'Voorrang', 'Stadsverkeer',
+    'Inhalen', 'Noodremmen', 'Spiegels & dode hoek', 'Theorie in praktijk',
+];
 
-// ── Auto's ophalen ─────────────────────────────────────────
+
+/* ============================================================
+   DATA OPHALEN
+   ============================================================ */
+
+/* Alle auto's (voor de auto-dropdown in het formulier) */
 $autos = [];
 $r = $conn->query("SELECT * FROM Autos ORDER BY merk");
-while ($row = $r->fetch_assoc()) $autos[] = $row;
+while ($rij = $r->fetch_assoc()) $autos[] = $rij;
 
-// ── Studenten ophalen (instructeur-modus) ──────────────────
+/* Studenten — alleen nodig als instructeur een les inplant */
 $studenten = [];
 if ($rol === 'instructeur') {
     $r = $conn->query("SELECT studentID, voornaam, tussenvoegsel, achternaam FROM studenten ORDER BY achternaam");
-    while ($row = $r->fetch_assoc()) $studenten[] = $row;
+    while ($rij = $r->fetch_assoc()) $studenten[] = $rij;
 }
 
-// ── Instructeurs ophalen (student-modus) ───────────────────
+/* Instructeurs — alleen nodig als student een les aanvraagt */
 $instructeurs = [];
 if ($rol === 'student') {
     $r = $conn->query("SELECT instructeurID, voornaam, achternaam FROM instructeurs ORDER BY voornaam");
-    while ($row = $r->fetch_assoc()) $instructeurs[] = $row;
+    while ($rij = $r->fetch_assoc()) $instructeurs[] = $rij;
 }
 
-// ── Datum bepalen ─────────────────────────────────────────
+/* Gekozen datum: uit URL (?datum=...) of POST of morgen als standaard */
 $gekozenDatum = $_GET['datum'] ?? $_POST['lesDatum'] ?? date('Y-m-d', strtotime('+1 day'));
-$dagNr        = date('N', strtotime($gekozenDatum));
+$dagNr        = date('N', strtotime($gekozenDatum)); // 1=Ma ... 7=Zo
 $dagNaam      = $dagNamen[$dagNr];
 
-// ── Bouw slots per instructeur voor de gekozen datum ──────
-function bouwInstrData($conn, $instrLijst, $gekozenDatum, $dagNaam) {
-    $data = [];
-    foreach ($instrLijst as $instr) {
-        $iID = $instr['instructeurID'];
 
-        // Beschikbaarheid op die dag ophalen
-        $bRes = $conn->query("
-            SELECT beginTijd, eindTijd, maxLessen FROM beschikbaarheid
-            WHERE instructeurID = $iID AND dagNaam = '$dagNaam' LIMIT 1
-        ");
-        $bRow = ($bRes && $bRes->num_rows > 0) ? $bRes->fetch_assoc() : null;
+/* ============================================================
+   HULPFUNCTIE: bouwSlotsVoorInstructeur()
+   Geeft voor één instructeur alle tijdslots terug op een datum.
+   Een slot is 'bezet' als er al een les is die overlapt (2 uur).
+   ============================================================ */
+function bouwSlotsVoorInstructeur(mysqli $conn, int $iID, string $datum, string $dagNaam): array
+{
+    /* Stap 1: beschikbaarheid van de instructeur op die dag */
+    $res  = $conn->query("
+        SELECT beginTijd, eindTijd, maxLessen FROM beschikbaarheid
+        WHERE instructeurID = $iID AND dagNaam = '$dagNaam'
+        LIMIT 1
+    ");
+    $bRow = ($res && $res->num_rows > 0) ? $res->fetch_assoc() : null;
 
-        // Bezette tijden ophalen
-        $bezet = [];
-        $bezRes = $conn->query("
-            SELECT lestijd FROM lessen
-            WHERE instructeurID = $iID AND lesDatum = '$gekozenDatum' AND vervallen = 0
-        ");
-        while ($row = $bezRes->fetch_assoc()) $bezet[] = substr($row['lestijd'], 0, 5);
+    /* Geen beschikbaarheid = geen slots */
+    if (!$bRow) {
+        return ['beschikbaar' => false, 'slots' => [], 'nogVrij' => 0,
+                'maxLessen' => 0, 'begin' => null, 'eind' => null];
+    }
 
-        // Slots genereren: stap 30 min, elk slot duurt 2u
-        $slots = [];
-        if ($bRow) {
-            $bMin = intval(substr($bRow['beginTijd'],0,2))*60 + intval(substr($bRow['beginTijd'],3,2));
-            $eMin = intval(substr($bRow['eindTijd'],0,2))*60  + intval(substr($bRow['eindTijd'],3,2));
-            for ($m = $bMin; $m + 120 <= $eMin; $m += 30) {
-                $slotTijd = sprintf('%02d:%02d', intdiv($m,60), $m%60);
-                $overlap  = false;
-                foreach ($bezet as $b) {
-                    $bM = intval(substr($b,0,2))*60 + intval(substr($b,3,2));
-                    if ($bM < $m + 120 && $bM + 120 > $m) { $overlap = true; break; }
-                }
-                $slots[] = [
-                    'tijd'  => $slotTijd,
-                    'eind'  => sprintf('%02d:%02d', intdiv($m+120,60), ($m+120)%60),
-                    'bezet' => $overlap
-                ];
+    /* Stap 2: al geplande (bezette) starttijden op die dag ophalen */
+    $bezet  = [];
+    $bezRes = $conn->query("
+        SELECT lestijd FROM lessen
+        WHERE instructeurID = $iID AND lesDatum = '$datum' AND vervallen = 0
+    ");
+    while ($b = $bezRes->fetch_assoc()) {
+        $bezet[] = substr($b['lestijd'], 0, 5);
+    }
+
+    /* Stap 3: mogelijke starttijden genereren (stap 30 min, slot + 2u moet binnen eindtijd vallen) */
+    $bMin  = intval(substr($bRow['beginTijd'], 0, 2)) * 60 + intval(substr($bRow['beginTijd'], 3, 2));
+    $eMin  = intval(substr($bRow['eindTijd'],  0, 2)) * 60 + intval(substr($bRow['eindTijd'],  3, 2));
+    $slots = [];
+
+    for ($m = $bMin; $m + 120 <= $eMin; $m += 30) {
+        $startTijd = sprintf('%02d:%02d', intdiv($m, 60), $m % 60);
+        $eindTijd  = sprintf('%02d:%02d', intdiv($m + 120, 60), ($m + 120) % 60);
+
+        /* Controleer of dit slot overlapt met een bestaande les */
+        $overlap = false;
+        foreach ($bezet as $b) {
+            $bM = intval(substr($b, 0, 2)) * 60 + intval(substr($b, 3, 2));
+            /* Overlap: bestaande les start vóór einde slot EN eindigt na start slot */
+            if ($bM < $m + 120 && $bM + 120 > $m) {
+                $overlap = true;
+                break;
             }
         }
 
-        $data[$iID] = [
-            'naam'        => $instr['voornaam'] . ' ' . $instr['achternaam'],
-            'beschikbaar' => $bRow ? true : false,
-            'begin'       => $bRow ? substr($bRow['beginTijd'],0,5) : null,
-            'eind'        => $bRow ? substr($bRow['eindTijd'],0,5)  : null,
-            'maxLessen'   => $bRow ? $bRow['maxLessen'] : 0,
-            'nogVrij'     => $bRow ? max(0, $bRow['maxLessen'] - count($bezet)) : 0,
-            'slots'       => $slots,
-        ];
+        $slots[] = ['tijd' => $startTijd, 'eind' => $eindTijd, 'bezet' => $overlap];
     }
-    return $data;
+
+    return [
+        'beschikbaar' => true,
+        'begin'       => substr($bRow['beginTijd'], 0, 5),
+        'eind'        => substr($bRow['eindTijd'],  0, 5),
+        'maxLessen'   => $bRow['maxLessen'],
+        'nogVrij'     => max(0, $bRow['maxLessen'] - count($bezet)),
+        'slots'       => $slots,
+    ];
 }
 
-// Bouw instrLijst: instructeur ziet alleen zichzelf
-$instrLijst = $rol === 'instructeur'
-    ? [['instructeurID' => $userID,
-        'voornaam'      => explode(' ', $naam)[0],
-        'achternaam'    => implode(' ', array_slice(explode(' ', $naam), 1))]]
-    : $instructeurs;
+/* Bouw de instrData array: slots voor elke relevante instructeur */
+$instrData = [];
 
-$instrData = bouwInstrData($conn, $instrLijst, $gekozenDatum, $dagNaam);
+if ($rol === 'instructeur') {
+    /* Instructeur ziet alleen zijn eigen slots */
+    $instrData[$userID] = bouwSlotsVoorInstructeur($conn, $userID, $gekozenDatum, $dagNaam);
+    $instrData[$userID]['naam'] = $naam;
+} else {
+    /* Student ziet slots van alle instructeurs */
+    foreach ($instructeurs as $instr) {
+        $iID = $instr['instructeurID'];
+        $instrData[$iID] = bouwSlotsVoorInstructeur($conn, $iID, $gekozenDatum, $dagNaam);
+        $instrData[$iID]['naam'] = $instr['voornaam'] . ' ' . $instr['achternaam'];
+    }
+}
 
-// ── Verwerk formulier ─────────────────────────────────────
+
+/* ============================================================
+   FORMULIER VERWERKEN
+   Wordt uitgevoerd als op "Opslaan" geklikt wordt.
+   ============================================================ */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    /* Invoer ophalen en schoonmaken */
     $datum       = $conn->real_escape_string($_POST['lesDatum']);
     $tijd        = $conn->real_escape_string($_POST['lestijd']);
     $instrID     = intval($_POST['instructeurID']);
-    $studentID   = $rol === 'instructeur' ? intval($_POST['studentID']) : $userID;
+    $studentID   = ($rol === 'instructeur') ? intval($_POST['studentID']) : $userID;
     $autoID      = intval($_POST['autoID']);
     $ophaal      = $conn->real_escape_string(trim($_POST['ophaalLocatie']));
-    $doel        = $conn->real_escape_string(trim($_POST['doel']));
+    // Student mag geen leerdoel kiezen — altijd 'Nader te bepalen door instructeur'
+    // Instructeur kiest zelf het doel via de dropdown
+    $doel        = ($rol === 'instructeur')
+        ? $conn->real_escape_string(trim($_POST['doel'] ?? ''))
+        : 'Nader te bepalen door instructeur';
     $onderwerpen = $conn->real_escape_string(trim($_POST['onderwerpen'] ?? ''));
 
-    if (!$datum || !$tijd || !$instrID || !$studentID || !$autoID || !$ophaal || !$doel) {
-        $fout = "Vul alle verplichte velden in.";
-    } else {
-        $dNr = date('N', strtotime($datum));
-        $dNm = $dagNamen[$dNr];
+    /* Alle verplichte velden ingevuld?
+       Student hoeft geen auto of leerdoel te kiezen — instructeur bepaalt dit */
+    $studentVerplichteVelden = !$datum || !$tijd || !$instrID || !$studentID || !$ophaal;
+    $instructeurVerplichteVelden = !$autoID || !$doel;
 
-        // Beschikbaarheid check
-        $bChk = $conn->query("
+    if ($studentVerplichteVelden || ($rol === 'instructeur' && $instructeurVerplichteVelden)) {
+        $fout = "Vul alle verplichte velden in.";
+
+    } else {
+        $dNm = $dagNamen[date('N', strtotime($datum))];
+
+        /* Beschikbaarheid van instructeur op die dag */
+        $bRes = $conn->query("
             SELECT * FROM beschikbaarheid
             WHERE instructeurID = $instrID AND dagNaam = '$dNm'
         ");
-        if (!$bChk || $bChk->num_rows === 0) {
-            $fout = "De instructeur is niet beschikbaar op $dNm.";
-        } else {
-            $bRow = $bChk->fetch_assoc();
-            $sMin = intval(substr($tijd,0,2))*60 + intval(substr($tijd,3,2));
-            $bMin = intval(substr($bRow['beginTijd'],0,2))*60 + intval(substr($bRow['beginTijd'],3,2));
-            $eMin = intval(substr($bRow['eindTijd'],0,2))*60  + intval(substr($bRow['eindTijd'],3,2));
 
+        if (!$bRes || $bRes->num_rows === 0) {
+            $fout = "De instructeur is niet beschikbaar op $dNm.";
+
+        } else {
+            $bRow = $bRes->fetch_assoc();
+            $sMin = intval(substr($tijd, 0, 2)) * 60 + intval(substr($tijd, 3, 2));
+            $bMin = intval(substr($bRow['beginTijd'], 0, 2)) * 60 + intval(substr($bRow['beginTijd'], 3, 2));
+            $eMin = intval(substr($bRow['eindTijd'],  0, 2)) * 60 + intval(substr($bRow['eindTijd'],  3, 2));
+
+            /* Tijdstip buiten beschikbaarheidvenster? */
             if ($sMin < $bMin || $sMin + 120 > $eMin) {
                 $fout = "Dit tijdstip valt buiten de beschikbaarheid ({$bRow['beginTijd']}–{$bRow['eindTijd']}).";
+
             } else {
-                // Overlap check
-                $ovRes = $conn->query("
+                /* Overlapt het gekozen slot met een bestaande les? */
+                $ovRes   = $conn->query("
                     SELECT lestijd FROM lessen
                     WHERE instructeurID = $instrID AND lesDatum = '$datum' AND vervallen = 0
                 ");
                 $overlap = false;
                 while ($ov = $ovRes->fetch_assoc()) {
-                    $oMin = intval(substr($ov['lestijd'],0,2))*60 + intval(substr($ov['lestijd'],3,2));
-                    if ($oMin < $sMin + 120 && $oMin + 120 > $sMin) { $overlap = true; break; }
+                    $oMin = intval(substr($ov['lestijd'], 0, 2)) * 60 + intval(substr($ov['lestijd'], 3, 2));
+                    if ($oMin < $sMin + 120 && $oMin + 120 > $sMin) {
+                        $overlap = true;
+                        break;
+                    }
                 }
 
-                // Max lessen check
-                $tel = $conn->query("
+                /* Maximum aantal lessen al bereikt? */
+                $aantalLessen = $conn->query("
                     SELECT COUNT(*) AS n FROM lessen
                     WHERE instructeurID = $instrID AND lesDatum = '$datum' AND vervallen = 0
                 ")->fetch_assoc()['n'];
 
                 if ($overlap) {
-                    $eindStr = sprintf('%02d:%02d', intdiv($sMin+120,60), ($sMin+120)%60);
-                    $fout = "Overlap: instructeur heeft al een les die botst met $tijd–$eindStr.";
-                } elseif ($tel >= $bRow['maxLessen']) {
+                    $eindStr = sprintf('%02d:%02d', intdiv($sMin + 120, 60), ($sMin + 120) % 60);
+                    $fout    = "Overlap: instructeur heeft al een les die botst met $tijd–$eindStr.";
+
+                } elseif ($aantalLessen >= $bRow['maxLessen']) {
                     $fout = "De instructeur heeft al het maximale aantal lessen op $datum.";
+
                 } else {
+                    /* Alles klopt: les aanmaken */
                     $conn->query("
                         INSERT INTO lessen
                             (lesDatum, lestijd, ophaalLocatie, doel, onderwerpen, studentID, instructeurID, autoID, vervallen)
                         VALUES
-                            ('$datum','$tijd:00','$ophaal','$doel','$onderwerpen',$studentID,$instrID,$autoID,0)
+                            ('$datum', '$tijd:00', '$ophaal', '$doel', '$onderwerpen', $studentID, $instrID, $autoID, 0)
                     ");
-                    $door   = $rol === 'instructeur' ? "door instructeur ingepland" : "aangevraagd";
+                    $door   = ($rol === 'instructeur') ? "door jou ingepland" : "aangevraagd";
                     $succes = "Les $door op <strong>$datum om $tijd</strong>! <a href='dashboard.php'>Naar dashboard →</a>";
                 }
             }
@@ -183,48 +249,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title><?= $rol === 'instructeur' ? 'Les inplannen' : 'Nieuwe les' ?></title>
-<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= $rol === 'instructeur' ? 'Les inplannen' : 'Nieuwe les aanvragen' ?></title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="container">
 
-    <!-- Header zelfde stijl als dashboard -->
+    <!-- ── HEADER ─────────────────────────────────────────────── -->
     <div class="dash-header">
         <div>
             <h2><?= $rol === 'instructeur' ? '📋 Les inplannen voor leerling' : '📅 Nieuwe les aanvragen' ?></h2>
             <span><?= htmlspecialchars($naam) ?></span>
         </div>
-        <a href="../logout.php" class="logout-btn">Uitloggen →</a>
+        <a href="logout.php" class="logout-btn">Uitloggen →</a>
     </div>
 
-    <!-- Navigatie: let op correcte sluit-tags -->
+    <!-- ── NAVIGATIE ──────────────────────────────────────────── -->
     <div class="top-buttons">
-        <a href="<?= $dashboardLink ?>" class="nav-btn">Dashboard</a>
-        <a href="kalender.php"           class="nav-btn">Kalender</a>
+        <a href="dashboard.php"       class="nav-btn">Dashboard</a>
+        <a href="index.php"           class="nav-btn">Kalender</a>
         <a href="beschikbaarheid.php" class="nav-btn">Rooster</a>
-        <div class="nav-btn active"><?= $rol === 'instructeur' ? '+ Les inplannen' : '+ Nieuwe les' ?></div>
+        <div                          class="nav-btn active">
+            <?= $rol === 'instructeur' ? '+ Les inplannen' : '+ Nieuwe les' ?>
+        </div>
     </div>
 
+    <!-- ── FEEDBACK ───────────────────────────────────────────── -->
     <?php if ($succes): ?>
         <div class="succes">✅ <?= $succes ?></div>
     <?php endif; ?>
 
     <div class="inrooster-wrap">
 
-        <!-- Stappenbalk: 3 stappen voor instructeur, 4 voor student -->
+        <!-- ── STAPPENBALK ──────────────────────────────────────
+             Instructeur: 3 stappen (Datum → Tijdstip → Details)
+             Student:     4 stappen (Datum → Instructeur → Tijdstip → Details)
+        ──────────────────────────────────────────────────────── -->
         <div class="stappen">
             <div class="stap actief" id="stap1"><span class="nr">1</span>Datum</div>
             <?php if ($rol === 'student'): ?>
                 <div class="stap" id="stap2"><span class="nr">2</span>Instructeur</div>
             <?php endif; ?>
-            <div class="stap" id="<?= $rol === 'instructeur' ? 'stap2' : 'stap3' ?>"><span class="nr"><?= $rol === 'instructeur' ? '2' : '3' ?></span>Tijdstip</div>
-            <div class="stap" id="<?= $rol === 'instructeur' ? 'stap3' : 'stap4' ?>"><span class="nr"><?= $rol === 'instructeur' ? '3' : '4' ?></span>Details</div>
+            <div class="stap" id="<?= $rol === 'instructeur' ? 'stap2' : 'stap3' ?>">
+                <span class="nr"><?= $rol === 'instructeur' ? '2' : '3' ?></span>Tijdstip
+            </div>
+            <div class="stap" id="<?= $rol === 'instructeur' ? 'stap3' : 'stap4' ?>">
+                <span class="nr"><?= $rol === 'instructeur' ? '3' : '4' ?></span>Details
+            </div>
         </div>
 
-        <!-- Stap 1: Datum kiezen -->
+
+        <!-- ── STAP 1: DATUM KIEZEN ─────────────────────────── -->
         <div class="datum-wrap">
             <div class="form-group" style="margin-bottom:0;">
                 <label>📅 Kies een datum</label>
@@ -238,44 +315,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     style="width:100%;padding:11px;border:2px solid #1b2940;font-size:14px;font-family:Arial;box-sizing:border-box;"
                 >
                 <div style="font-size:11px;color:#666;margin-top:6px;">
-                    <?= $dagNaam ?> <?= date('d-m-Y', strtotime($gekozenDatum)) ?>
+                    <?= $dagNaam ?>, <?= date('d-m-Y', strtotime($gekozenDatum)) ?>
                 </div>
             </div>
         </div>
 
-        <?php
-        // ── INSTRUCTEUR-MODUS: toon eigen slots direct ──────────
-        if ($rol === 'instructeur'):
-            $myData = $instrData[$userID] ?? null;
+
+        <!-- ── STAP 2 (INSTRUCTEUR-MODUS): EIGEN TIJDSLOTS ──── -->
+        <?php if ($rol === 'instructeur'):
+            $myData = $instrData[$userID];
         ?>
         <div style="margin-bottom:12px;">
-            <?php if (!$myData || !$myData['beschikbaar']): ?>
+            <?php if (!$myData['beschikbaar']): ?>
+                <!-- Geen beschikbaarheid ingesteld voor deze dag -->
                 <div class="geen-lessen">
                     ⚠️ Je hebt geen beschikbaarheid op <strong><?= $dagNaam ?></strong>.
-                    <a href="beschikbaarheid.php" style="color:#1b2940;font-weight:bold;">Stel je rooster in →</a>
+                    <a href="beschikbaarheid.php" style="color:#1b2940;font-weight:bold;">
+                        Stel je rooster in →
+                    </a>
                 </div>
+
             <?php elseif ($myData['nogVrij'] <= 0): ?>
+                <!-- Dag zit vol -->
                 <div class="fout">🚫 Je rooster op <?= $dagNaam ?> is al vol.</div>
+
             <?php else: ?>
+                <!-- Tijdslots weergeven -->
                 <div class="instr-kaart" style="cursor:default;border-color:#1b2940;">
                     <div class="instr-naam">
                         🎓 <?= htmlspecialchars($naam) ?>
-                        <span style="font-size:10px;color:#28a745;font-weight:bold;margin-left:8px;">— Jouw beschikbaarheid</span>
+                        <span style="font-size:10px;color:#28a745;margin-left:8px;">— Jouw beschikbaarheid</span>
                     </div>
                     <div class="instr-meta">
                         ⏰ <?= $myData['begin'] ?> – <?= $myData['eind'] ?>
-                        &nbsp;·&nbsp; Max <?= $myData['maxLessen'] ?> lessen
-                        &nbsp;·&nbsp; Nog <strong><?= $myData['nogVrij'] ?></strong> plek(ken) vrij
+                        &nbsp;·&nbsp; Nog <?= $myData['nogVrij'] ?> plek(ken) vrij
                         &nbsp;·&nbsp; Elke les = 2 uur
                     </div>
-                    <!-- Plek-indicator -->
+
+                    <!-- Gekleurde blokjes: groen = vrij, rood = bezet -->
                     <div class="plek-balk">
                         <?php for ($p = 1; $p <= $myData['maxLessen']; $p++): ?>
                             <div class="plek-blok <?= $p <= ($myData['maxLessen'] - $myData['nogVrij']) ? 'bezet' : 'vrij' ?>"></div>
                         <?php endfor; ?>
                     </div>
-                    <!-- Tijdslot knoppen -->
-                    <div style="font-size:11px;color:#555;margin-bottom:6px;">Kies een tijdstip:</div>
+
+                    <!-- Klikbare tijdslot knoppen -->
+                    <div style="font-size:11px;color:#555;margin:8px 0 4px;">Kies een tijdstip:</div>
                     <div class="slot-knoppen">
                         <?php foreach ($myData['slots'] as $slot): ?>
                             <button
@@ -290,27 +375,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
         </div>
 
-        <?php
-        // ── STUDENT-MODUS: kies instructeur + slot ──────────────
-        elseif ($rol === 'student'):
-        ?>
-        <div id="instrSectie" style="margin-bottom:12px;">
+
+        <!-- ── STAP 2+3 (STUDENT-MODUS): INSTRUCTEUR + TIJDSLOT ── -->
+        <?php elseif ($rol === 'student'): ?>
+        <div style="margin-bottom:12px;">
             <div style="font-size:12px;color:#555;margin-bottom:8px;">
                 Beschikbare instructeurs op <strong><?= $dagNaam ?></strong>:
             </div>
+
             <?php if (empty($instructeurs)): ?>
                 <div class="geen-lessen">Geen instructeurs beschikbaar.</div>
+
             <?php else: ?>
                 <div class="instr-kaarten">
                     <?php foreach ($instructeurs as $instr):
-                        $iID   = $instr['instructeurID'];
-                        $data  = $instrData[$iID] ?? null;
-                        if (!$data) continue;
-                        $isVol = !$data['beschikbaar'] || $data['nogVrij'] <= 0;
+                        $iID  = $instr['instructeurID'];
+                        $data = $instrData[$iID];
+                        $vol  = !$data['beschikbaar'] || $data['nogVrij'] <= 0;
                     ?>
-                    <div class="instr-kaart <?= $isVol ? 'vol' : '' ?>"
-                         id="instrKaart_<?= $iID ?>">
+                    <div class="instr-kaart <?= $vol ? 'vol' : '' ?>" id="instrKaart_<?= $iID ?>">
 
+                        <!-- Naam + status -->
                         <div class="instr-naam">
                             🎓 <?= htmlspecialchars($data['naam']) ?>
                             <?php if (!$data['beschikbaar']): ?>
@@ -320,18 +405,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <?php endif; ?>
                         </div>
 
-                        <?php if ($data['beschikbaar'] && !$isVol): ?>
+                        <?php if ($data['beschikbaar'] && !$vol): ?>
+
+                            <!-- Beschikbaarheid info -->
                             <div class="instr-meta">
                                 ⏰ <?= $data['begin'] ?> – <?= $data['eind'] ?>
                                 &nbsp;·&nbsp; Nog <?= $data['nogVrij'] ?> plek(ken) vrij
                                 &nbsp;·&nbsp; Elke les = 2 uur
                             </div>
+
+                            <!-- Gekleurde blokjes indicator -->
                             <div class="plek-balk">
                                 <?php for ($p = 1; $p <= $data['maxLessen']; $p++): ?>
                                     <div class="plek-blok <?= $p <= ($data['maxLessen'] - $data['nogVrij']) ? 'bezet' : 'vrij' ?>"></div>
                                 <?php endfor; ?>
                             </div>
-                            <div style="font-size:11px;color:#555;margin-bottom:6px;">Kies een tijdstip:</div>
+
+                            <!-- Tijdslot knoppen -->
+                            <div style="font-size:11px;color:#555;margin:8px 0 4px;">Kies een tijdstip:</div>
                             <div class="slot-knoppen" id="slots_<?= $iID ?>">
                                 <?php foreach ($data['slots'] as $slot): ?>
                                     <button
@@ -342,6 +433,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     ><?= $slot['tijd'] ?>–<?= $slot['eind'] ?></button>
                                 <?php endforeach; ?>
                             </div>
+
                         <?php endif; ?>
                     </div>
                     <?php endforeach; ?>
@@ -350,10 +442,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
         <?php endif; ?>
 
-        <!-- Detailformulier: verborgen tot slot gekozen -->
+
+        <!-- ── STAP 3/4: DETAILFORMULIER ────────────────────────
+             Verborgen totdat een tijdslot gekozen is.
+             Wordt zichtbaar via JS na klikken op een slot-knop.
+        ──────────────────────────────────────────────────────── -->
         <div class="formulier-sectie" id="formulierSectie">
 
-            <!-- Samenvatting bovenin formulier -->
+            <!-- Samenvatting van de gemaakte keuzes -->
             <div class="keuze-samenvatting">
                 <div><strong id="samDatum">—</strong>Datum</div>
                 <?php if ($rol === 'student'): ?>
@@ -363,19 +459,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
 
             <form method="POST" action="les_inroosteren.php" onsubmit="return valideerForm()">
+
+                <!-- Hidden: datum, tijd en instructeurID worden via JS ingevuld -->
                 <input type="hidden" name="lesDatum"      id="hiddenDatum" value="<?= htmlspecialchars($gekozenDatum) ?>">
                 <input type="hidden" name="lestijd"       id="hiddenTijd">
                 <input type="hidden" name="instructeurID" id="hiddenInstr" value="<?= $rol === 'instructeur' ? $userID : '' ?>">
 
-                <!-- Leerling kiezen (alleen instructeur) -->
+                <!-- Voor welke leerling? (alleen zichtbaar voor instructeur) -->
                 <?php if ($rol === 'instructeur'): ?>
                 <div class="form-group">
                     <label>👤 Voor welke leerling? <span style="color:#dc3545;">*</span></label>
                     <select name="studentID" required>
                         <option value="">— Kies een leerling —</option>
                         <?php foreach ($studenten as $st):
-                            $tv   = $st['tussenvoegsel'] ? $st['tussenvoegsel'] . ' ' : '';
-                            $vol  = $st['voornaam'] . ' ' . $tv . $st['achternaam'];
+                            $tv  = $st['tussenvoegsel'] ? $st['tussenvoegsel'] . ' ' : '';
+                            $vol = $st['voornaam'] . ' ' . $tv . $st['achternaam'];
                         ?>
                             <option value="<?= $st['studentID'] ?>"
                                 <?= (isset($_POST['studentID']) && $_POST['studentID'] == $st['studentID']) ? 'selected' : '' ?>>
@@ -389,34 +487,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <!-- Ophaallocatie -->
                 <div class="form-group">
                     <label>📍 Ophaallocatie <span style="color:#dc3545;">*</span></label>
-                    <input type="text" name="ophaalLocatie"
+                    <input
+                        type="text"
+                        name="ophaalLocatie"
                         placeholder="bv. Rotterdam Centrum, Delft Station..."
                         value="<?= htmlspecialchars($_POST['ophaalLocatie'] ?? '') ?>"
-                        maxlength="100" required>
+                        maxlength="100"
+                        required
+                    >
                 </div>
 
-                <!-- Leerdoel -->
+                <!-- Leerdoel: alleen instructeur kiest dit -->
+                <?php if ($rol === 'instructeur'): ?>
                 <div class="form-group">
                     <label>🎯 Leerdoel <span style="color:#dc3545;">*</span></label>
                     <select name="doel" required>
                         <option value="">— Kies een onderwerp —</option>
-                        <?php
-                        $doelen = ['Rotondes','Snelweg','Parkeren','Voorrang','Stadsverkeer',
-                                   'Inhalen','Noodremmen','Spiegels & dode hoek','Theorie in praktijk'];
-                        foreach ($doelen as $d)
-                            echo "<option value='$d'" . (($_POST['doel'] ?? '') === $d ? ' selected' : '') . ">$d</option>";
-                        ?>
+                        <?php foreach ($doelen as $d): ?>
+                            <option value="<?= $d ?>" <?= (($_POST['doel'] ?? '') === $d) ? 'selected' : '' ?>>
+                                <?= $d ?>
+                            </option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
+                <?php else: ?>
+                    <!-- Student geeft geen leerdoel op: instructeur bepaalt dit -->
+                    <input type="hidden" name="doel" value="Nader te bepalen door instructeur">
+                <?php endif; ?>
 
-                <!-- Extra opmerkingen -->
+                <!-- Extra opmerkingen (optioneel) -->
                 <div class="form-group">
                     <label>📝 Extra opmerkingen</label>
                     <textarea name="onderwerpen" placeholder="Wat wil je specifiek oefenen?" maxlength="255"
                     ><?= htmlspecialchars($_POST['onderwerpen'] ?? '') ?></textarea>
                 </div>
 
-                <!-- Auto -->
+                <!-- Auto: alleen instructeur kiest de auto -->
+                <?php if ($rol === 'instructeur'): ?>
                 <div class="form-group">
                     <label>🚗 Auto <span style="color:#dc3545;">*</span></label>
                     <select name="autoID" required>
@@ -428,7 +535,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php endforeach; ?>
                     </select>
                 </div>
+                <?php else: ?>
+                    <!-- Student kiest geen auto: instructeur wijst dit toe -->
+                    <!-- Eerste beschikbare auto als standaard -->
+                    <?php if (!empty($autos)): ?>
+                        <input type="hidden" name="autoID" value="<?= $autos[0]['autoID'] ?>">
+                    <?php endif; ?>
+                <?php endif; ?>
 
+                <!-- Foutmelding bij validatiefout -->
                 <?php if ($fout): ?>
                     <div class="fout">⚠️ <?= htmlspecialchars($fout) ?></div>
                 <?php endif; ?>
@@ -445,64 +560,86 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div><!-- /inrooster-wrap -->
 </div><!-- /container -->
 
+
 <script>
+/* ============================================================
+   JAVASCRIPT — les_inroosteren.php
+   ============================================================ */
+
 const rolIsInstructeur = <?= $rol === 'instructeur' ? 'true' : 'false' ?>;
 const aantalStappen    = rolIsInstructeur ? 3 : 4;
 
 /**
- * laadPagina — Herlaadt pagina met nieuwe datum na datumwissel.
+ * laadPagina — Herlaadt de pagina met de nieuw gekozen datum.
+ * Zo worden de beschikbare slots opnieuw berekend in PHP.
  */
 function laadPagina() {
-    const d = document.getElementById('datumPicker').value;
-    if (d) window.location.href = 'les_inroosteren.php?datum=' + d;
+    const datum = document.getElementById('datumPicker').value;
+    if (datum) window.location.href = 'les_inroosteren.php?datum=' + datum;
 }
 
 /**
- * kiesTijdslot — Instructeur kiest tijdslot (is altijd zichzelf als instructeur).
+ * kiesTijdslot — Wordt gebruikt door de instructeur.
+ * Slaat het gekozen tijdstip op en toont het detailformulier.
  */
 function kiesTijdslot(tijd, eind) {
-    document.querySelectorAll('.slot-knop').forEach(b => b.classList.remove('actief'));
-    event.currentTarget.classList.add('actief');
-    toonFormulier(tijd, eind, null);
+    markeerSlotKnop(tijd);
+    toonFormulier(tijd, eind);
     setStap(rolIsInstructeur ? 2 : 3);
 }
 
 /**
- * kiesTijdslotStudent — Student kiest instructeur + tijdslot tegelijk.
+ * kiesTijdslotStudent — Wordt gebruikt door de student.
+ * Slaat zowel de instructeur als het tijdstip op en toont het formulier.
  */
 function kiesTijdslotStudent(iID, instrNaam, tijd, eind) {
-    // Markeer instructeurskaart
+    /* Markeer de instructeurskaart */
     document.querySelectorAll('.instr-kaart').forEach(k => k.classList.remove('gekozen'));
     document.getElementById('instrKaart_' + iID)?.classList.add('gekozen');
 
-    // Markeer slot-knop
-    document.querySelectorAll('.slot-knop').forEach(b => b.classList.remove('actief'));
-    event.currentTarget.classList.add('actief');
-
+    /* Sla instructeurID op en toon naam in samenvatting */
     document.getElementById('hiddenInstr').value = iID;
-    if (document.getElementById('samInstr'))
-        document.getElementById('samInstr').textContent = instrNaam;
+    const samInstr = document.getElementById('samInstr');
+    if (samInstr) samInstr.textContent = instrNaam;
 
-    toonFormulier(tijd, eind, instrNaam);
+    markeerSlotKnop(tijd);
+    toonFormulier(tijd, eind);
     setStap(4);
 }
 
 /**
- * toonFormulier — Vult samenvatting + hidden inputs en toont detailformulier.
+ * markeerSlotKnop — Markeert de geklekte slot-knop als actief.
  */
-function toonFormulier(tijd, eind, instrNaam) {
+function markeerSlotKnop(tijd) {
+    document.querySelectorAll('.slot-knop').forEach(b => b.classList.remove('actief'));
+    document.querySelectorAll('.slot-knop').forEach(b => {
+        if (b.textContent.trim().startsWith(tijd)) b.classList.add('actief');
+    });
+}
+
+/**
+ * toonFormulier — Vult de samenvatting en hidden inputs in,
+ * maakt het detailformulier zichtbaar en scrollt ernaartoe.
+ */
+function toonFormulier(tijd, eind) {
     const datum = document.getElementById('datumPicker').value;
+
+    /* Samenvatting bovenin formulier bijwerken */
     document.getElementById('samDatum').textContent = datum;
     document.getElementById('samTijd').textContent  = tijd + '–' + eind;
-    document.getElementById('hiddenDatum').value    = datum;
-    document.getElementById('hiddenTijd').value     = tijd;
 
+    /* Hidden inputs vullen zodat het formulier de juiste waarden verstuurt */
+    document.getElementById('hiddenDatum').value = datum;
+    document.getElementById('hiddenTijd').value  = tijd;
+
+    /* Formulier tonen en scrollen */
     document.getElementById('formulierSectie').classList.add('zichtbaar');
     document.getElementById('formulierSectie').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 /**
- * resetFormulier — Verbergt formulier en wist selecties.
+ * resetFormulier — Verbergt het formulier en wist alle selecties.
+ * Wordt aangeroepen door de "← Terug" knop.
  */
 function resetFormulier() {
     document.getElementById('formulierSectie').classList.remove('zichtbaar');
@@ -515,6 +652,7 @@ function resetFormulier() {
 
 /**
  * setStap — Werkt de stappenbalk bij.
+ * Voltooide stappen worden groen, de huidige stap blauw.
  */
 function setStap(n) {
     for (let i = 1; i <= aantalStappen; i++) {
@@ -527,7 +665,8 @@ function setStap(n) {
 }
 
 /**
- * valideerForm — Controleert verplichte velden voor submit.
+ * valideerForm — Controleert of tijdstip (en instructeur) gekozen zijn
+ * voordat het formulier verstuurd wordt.
  */
 function valideerForm() {
     if (!document.getElementById('hiddenTijd').value) {
