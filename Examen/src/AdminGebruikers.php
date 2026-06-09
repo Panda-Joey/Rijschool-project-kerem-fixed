@@ -142,7 +142,10 @@ if (isset($_POST['bewerken'])) {
         $messageType = 'fout';
     } else {
         if ($rol === 'student') {
-            $statusStudent = $_POST['status'] ?? 'pending';
+            $statusStudent = $_POST['student_status'] ?? 'pending';
+            if (!in_array($statusStudent, ['pending', 'actief'], true)) {
+                $statusStudent = 'pending';
+            }
 
             if ($wachtwoord !== '') {
                 $hash = password_hash($wachtwoord, PASSWORD_DEFAULT);
@@ -309,11 +312,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
 
         <form method="GET" class="filter-form">
             <label for="filter_status">Kies je gebruiker:</label>
-            <select name="status" id="filter_status">
+            <select name="gebruiker_filter" id="filter_status">
                 <option value="">alle studenten</option>
-                <option value="actieve-studenten" <?= ($_GET['status'] ?? '') === 'actieve-studenten' ? 'selected' : '' ?>>actieve studenten</option>
-                <option value="niewe-studenten" <?= ($_GET['status'] ?? '') === 'niewe-studenten' ? 'selected' : '' ?>>aangemelden studenten</option>
-                <option value="instructeurs" <?= ($_GET['status'] ?? '') === 'instructeurs' ? 'selected' : '' ?>>instructeurs</option>
+                <option value="actieve-studenten" <?= ($_GET['gebruiker_filter'] ?? '') === 'actieve-studenten' ? 'selected' : '' ?>>actieve studenten</option>
+                <option value="niewe-studenten" <?= ($_GET['gebruiker_filter'] ?? '') === 'niewe-studenten' ? 'selected' : '' ?>>aangemelden studenten</option>
+                <option value="instructeurs" <?= ($_GET['gebruiker_filter'] ?? '') === 'instructeurs' ? 'selected' : '' ?>>instructeurs</option>
             </select>
             <button type="submit">Filter</button>
         </form>
@@ -332,7 +335,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
             </thead>
             <tbody>
             <?php
-            $statusFilter = $_GET['status'] ?? '';
+            $statusFilter = $_GET['gebruiker_filter'] ?? '';
 
             if ($statusFilter === 'actieve-studenten') {
                 $query = "SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, l.naam AS lespakket
@@ -405,7 +408,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
     </div>
 </div>
 
-<div id="addModal" class="modal">
+<div id="addModal" class="modal" hidden>
     <div class="modal-content">
         <span class="close-btn" onclick="closeAddModal()">&times;</span>
         <h3>Nieuwe Gebruiker Aanmaken</h3>
@@ -487,7 +490,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
     </div>
 </div>
 
-<div id="editModal" class="modal">
+<div id="editModal" class="modal" hidden>
     <div class="modal-content">
         <span class="close-btn" onclick="closeEditModal()">&times;</span>
         <h3>Gebruiker Bewerken</h3>
@@ -498,10 +501,10 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
             <input type="hidden" name="rol" id="edit_rol">
 
             <div class="modal-form-group" id="edit_status_group">
-                <label for="edit_status">Account Status:</label>
-                <select name="status" id="edit_status">
-                    <option value="pending">Pending (Aangemeld)</option>
-                    <option value="actief">Actief</option>
+                <label for="edit_status">Actief:</label>
+                <select name="student_status" id="edit_status">
+                    <option value="actief">Ja — actief</option>
+                    <option value="pending">Nee — niet actief (aangemeld)</option>
                 </select>
             </div>
 
@@ -542,12 +545,16 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
 
 <script>
 function openAddModal() {
-    document.getElementById('addModal').classList.add('show');
+    var modal = document.getElementById('addModal');
+    modal.hidden = false;
+    modal.classList.add('show');
     toggleAddFields();
 }
 
 function closeAddModal() {
-    document.getElementById('addModal').classList.remove('show');
+    var modal = document.getElementById('addModal');
+    modal.classList.remove('show');
+    modal.hidden = true;
 }
 
 function toggleAddFields() {
@@ -566,28 +573,35 @@ function openEditModal(data) {
     document.getElementById('edit_telefoon').value = data.telefoon || '';
 
     var statusGroup = document.getElementById('edit_status_group');
+    var statusSelect = document.getElementById('edit_status');
     if (data.rol === 'student') {
         statusGroup.style.display = 'block';
-        document.getElementById('edit_status').value = data.status;
+        statusSelect.disabled = false;
+        statusSelect.value = data.status === 'actief' ? 'actief' : 'pending';
     } else {
         statusGroup.style.display = 'none';
+        statusSelect.disabled = true;
     }
 
-    document.getElementById('editModal').classList.add('show');
+    var editModal = document.getElementById('editModal');
+    editModal.hidden = false;
+    editModal.classList.add('show');
 }
 
 function closeEditModal() {
-    document.getElementById('editModal').classList.remove('show');
+    var editModal = document.getElementById('editModal');
+    editModal.classList.remove('show');
+    editModal.hidden = true;
 }
 
 window.onclick = function(event) {
     var addModal = document.getElementById('addModal');
     var editModal = document.getElementById('editModal');
     if (event.target === addModal) {
-        addModal.classList.remove('show');
+        closeAddModal();
     }
     if (event.target === editModal) {
-        editModal.classList.remove('show');
+        closeEditModal();
     }
 };
 </script>

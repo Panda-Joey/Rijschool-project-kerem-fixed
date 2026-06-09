@@ -22,7 +22,6 @@ body{
     color:white;
     padding:14px 20px;
     margin-top:10px;
-
     display:flex;
     justify-content:space-between;
     align-items:center;
@@ -37,6 +36,17 @@ body{
     font-size:12px;
     margin-top:4px;
     color:#d6d6d6;
+}
+
+.badge{
+    display:inline-block;
+    margin-left:8px;
+    padding:2px 8px;
+    font-size:11px;
+    font-weight:bold;
+    background:#6f7a93;
+    color:#fff;
+    vertical-align:middle;
 }
 
 .logout-btn{
@@ -77,14 +87,17 @@ body{
     color:white;
 }
 
+.nav-card.active,
 .active{
     background:#162544;
     color:white;
 }
 
+/* GEBRUIKERSPAGINA (Lee-Ann) */
+
 .schema {
     max-width: 1200px;
-    margin: 0 auto;
+    margin: 20px auto 0;
 }
 
 .btn-add {
@@ -105,6 +118,7 @@ body{
     background-color: #16325c;
 }
 
+.schema > form,
 .filter-form {
     background-color: white;
     padding: 15px;
@@ -113,11 +127,13 @@ body{
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
+.schema > form label,
 .filter-form label {
     font-weight: bold;
     margin-right: 10px;
 }
 
+.schema > form select,
 .filter-form select {
     padding: 8px;
     border: 1px solid #ccc;
@@ -125,6 +141,7 @@ body{
     margin-right: 10px;
 }
 
+.schema > form button,
 .filter-form button {
     background-color: #0f2241;
     color: white;
@@ -192,6 +209,8 @@ td {
 .btn-edit:hover { background-color: #16325c; }
 .btn-delete:hover { background-color: #cc0000; }
 
+/* MODALS (Lee-Ann) */
+
 .modal {
     display: none;
     position: fixed;
@@ -218,6 +237,38 @@ td {
     position: relative;
 }
 
+.modal-content h3 {
+    margin-bottom: 8px;
+    color: #0f2241;
+}
+
+.modal-content hr {
+    border: none;
+    border-top: 1px solid #e0e0e0;
+    margin-bottom: 16px;
+}
+
+.close-btn {
+    position: absolute;
+    right: 16px;
+    top: 12px;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    line-height: 1;
+}
+
+.close-btn:hover {
+    color: #000;
+}
+
+.modal-form {
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+    margin: 0;
+}
+
 .modal-form-group {
     margin-bottom: 12px;
 }
@@ -234,6 +285,7 @@ td {
     padding: 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
+    font-size: 14px;
 }
 
 .btn-submit {
@@ -245,15 +297,14 @@ td {
     cursor: pointer;
     font-weight: bold;
     margin-top: 8px;
+    width: 100%;
 }
 
-.close-btn {
-    position: absolute;
-    right: 16px;
-    top: 12px;
-    font-size: 24px;
-    cursor: pointer;
+.btn-submit:hover {
+    background-color: #16325c;
 }
+
+/* FLASH + WAGENPARK (Kerem) */
 
 .flash{
     margin-top:16px;
