@@ -1,0 +1,76 @@
+.les-uren-kopen {
+    margin-top: 30px;
+    padding: 20px;
+    background: linear-gradient(135deg, #1b2940, #243b55);
+    border-radius: 16px;
+    color: white;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+}
+
+.lek-title h3 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.lek-title p {
+    margin: 5px 0 15px;
+    opacity: 0.8;
+    font-size: 13px;
+}
+
+.lek-note {
+    font-size: 12px;
+    opacity: 0.7;
+    margin-top: 10px;
+}
+
+.lek-content {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.lek-option {
+    flex: 1 1 160px;
+    min-width: 160px;
+}
+
+.lek-option:hover {
+    transform: translateY(-3px);
+    background: rgba(255,255,255,0.12);
+}
+
+.lek-option span {
+    display: block;
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.lek-option strong {
+    display: block;
+    font-size: 22px;
+    margin: 10px 0;
+}
+
+.lek-btn {
+    display: inline-block;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: #4f46e5;
+    color: white;
+    text-decoration: none;
+    font-size: 13px;
+}
+
+.lek-option.highlight {
+    border: 1px solid #4f46e5;
+    background: rgba(79,70,229,0.2);
+}
+
+.section-divider {
+    margin: 30px 0 10px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.6;
+}
