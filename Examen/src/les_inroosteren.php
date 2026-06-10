@@ -46,24 +46,78 @@ $doelen = [
    DATA OPHALEN
    ============================================================ */
 
-/* Alle auto's (voor de auto-dropdown in het formulier) */
-$autos = [];
-$r = $conn->query("SELECT * FROM Autos ORDER BY merk");
-while ($rij = $r->fetch_assoc()) $autos[] = $rij;
+/* ── STUDENT: haal gekoppelde instructeur op ─────────────────
+   Een student heeft precies 1 vaste instructeur via studenten_has_instructeurs.
+   We halen die instructeur op, inclusief zijn gekoppelde auto via instructeur_auto. */
+$gekoppeldeInstructeur = null;
+$gekoppeldeAuto        = null;
+$transmissie           = 'schakel'; // standaard fallback
 
-/* Studenten — alleen nodig als instructeur een les inplant */
-$studenten = [];
+if ($rol === 'student') {
+    /* Transmissie van de student */
+    $r = $conn->query("SELECT transmissie FROM studenten WHERE studentID = $userID");
+    if ($r && $rij = $r->fetch_assoc()) $transmissie = $rij['transmissie'];
+
+    /* Gekoppelde instructeur + zijn auto in één query */
+    $r = $conn->query("
+        SELECT i.instructeurID, i.voornaam, i.achternaam, i.omschrijving, i.transmissie,
+               a.autoID, a.merk, a.type, a.kenteken, a.transmissie AS autoTransmissie
+        FROM studenten_has_instructeurs shi
+        JOIN instructeurs i ON shi.instructeurID = i.instructeurID
+        LEFT JOIN instructeur_auto ia ON i.instructeurID = ia.instructeurID
+        LEFT JOIN Autos a ON ia.autoID = a.autoID
+        WHERE shi.studentID = $userID
+        LIMIT 1
+    ");
+    if ($r && $r->num_rows > 0) {
+        $rij                   = $r->fetch_assoc();
+        $gekoppeldeInstructeur = $rij;
+        $gekoppeldeAuto        = $rij['autoID'] ? $rij : null;
+    }
+}
+
+/* ── INSTRUCTEUR: haal transmissie en gekoppelde studenten op ──
+   Instructeur ziet alleen studenten die aan hem gekoppeld zijn. */
+$transmissieInstr = 'schakel';
+$studenten        = [];
+$instrAuto        = null;
+
 if ($rol === 'instructeur') {
-    $r = $conn->query("SELECT studentID, voornaam, tussenvoegsel, achternaam FROM studenten ORDER BY achternaam");
+    /* Transmissie van de instructeur */
+    $r = $conn->query("SELECT transmissie FROM instructeurs WHERE instructeurID = $userID");
+    if ($r && $rij = $r->fetch_assoc()) $transmissieInstr = $rij['transmissie'];
+    $transmissie = $transmissieInstr;
+
+    /* Gekoppelde auto van de instructeur */
+    $r = $conn->query("
+        SELECT a.* FROM instructeur_auto ia
+        JOIN Autos a ON ia.autoID = a.autoID
+        WHERE ia.instructeurID = $userID
+        LIMIT 1
+    ");
+    if ($r && $r->num_rows > 0) $instrAuto = $r->fetch_assoc();
+
+    /* Alleen gekoppelde studenten van deze instructeur */
+    $r = $conn->query("
+        SELECT s.studentID, s.voornaam, s.tussenvoegsel, s.achternaam, s.transmissie
+        FROM studenten_has_instructeurs shi
+        JOIN studenten s ON shi.studentID = s.studentID
+        WHERE shi.instructeurID = $userID AND s.status = 'actief'
+        ORDER BY s.achternaam
+    ");
     while ($rij = $r->fetch_assoc()) $studenten[] = $rij;
 }
 
-/* Instructeurs — alleen nodig als student een les aanvraagt */
-$instructeurs = [];
-if ($rol === 'student') {
-    $r = $conn->query("SELECT instructeurID, voornaam, achternaam FROM instructeurs ORDER BY voornaam");
-    while ($rij = $r->fetch_assoc()) $instructeurs[] = $rij;
+/* Auto's: instructeur gebruikt zijn vaste auto, student gebruikt auto van instructeur */
+$autos = [];
+if ($rol === 'instructeur' && $instrAuto) {
+    $autos[] = $instrAuto; // instructeur ziet alleen zijn eigen auto
+} elseif ($rol === 'instructeur') {
+    /* Geen gekoppelde auto: toon alle autos als fallback */
+    $r = $conn->query("SELECT * FROM Autos ORDER BY merk");
+    while ($rij = $r->fetch_assoc()) $autos[] = $rij;
 }
+/* Voor student wordt de auto van de instructeur automatisch gebruikt (hidden input) */
 
 /* Gekozen datum: uit URL (?datum=...) of POST of morgen als standaard */
 $gekozenDatum = $_GET['datum'] ?? $_POST['lesDatum'] ?? date('Y-m-d', strtotime('+1 day'));
@@ -135,20 +189,26 @@ function bouwSlotsVoorInstructeur(mysqli $conn, int $iID, string $datum, string 
     ];
 }
 
-/* Bouw de instrData array: slots voor elke relevante instructeur */
+/* Bouw de instrData array: slots voor de relevante instructeur(s) */
 $instrData = [];
 
 if ($rol === 'instructeur') {
     /* Instructeur ziet alleen zijn eigen slots */
     $instrData[$userID] = bouwSlotsVoorInstructeur($conn, $userID, $gekozenDatum, $dagNaam);
-    $instrData[$userID]['naam'] = $naam;
-} else {
-    /* Student ziet slots van alle instructeurs */
-    foreach ($instructeurs as $instr) {
-        $iID = $instr['instructeurID'];
-        $instrData[$iID] = bouwSlotsVoorInstructeur($conn, $iID, $gekozenDatum, $dagNaam);
-        $instrData[$iID]['naam'] = $instr['voornaam'] . ' ' . $instr['achternaam'];
-    }
+    $instrData[$userID]['naam']        = $naam;
+    $instrData[$userID]['transmissie'] = $transmissieInstr ?? $transmissie;
+
+} elseif ($gekoppeldeInstructeur) {
+    /* Student ziet alleen zijn vaste gekoppelde instructeur */
+    $iID = $gekoppeldeInstructeur['instructeurID'];
+    $instrData[$iID] = bouwSlotsVoorInstructeur($conn, $iID, $gekozenDatum, $dagNaam);
+    $instrData[$iID]['naam']        = $gekoppeldeInstructeur['voornaam'] . ' ' . $gekoppeldeInstructeur['achternaam'];
+    $instrData[$iID]['transmissie'] = $gekoppeldeInstructeur['transmissie'];
+    $instrData[$iID]['omschrijving']= $gekoppeldeInstructeur['omschrijving'] ?? '';
+    $instrData[$iID]['autoNaam']    = $gekoppeldeInstructeur['autoID']
+        ? $gekoppeldeInstructeur['merk'] . ' ' . $gekoppeldeInstructeur['type'] . ' (' . $gekoppeldeInstructeur['kenteken'] . ')'
+        : null;
+    $instrData[$iID]['autoID']      = $gekoppeldeInstructeur['autoID'] ?? null;
 }
 
 
@@ -287,17 +347,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
              Instructeur: 3 stappen (Datum → Tijdstip → Details)
              Student:     4 stappen (Datum → Instructeur → Tijdstip → Details)
         ──────────────────────────────────────────────────────── -->
+        <!-- Stappenbalk: altijd 3 stappen (Datum → Tijdstip → Details) -->
         <div class="stappen">
             <div class="stap actief" id="stap1"><span class="nr">1</span>Datum</div>
-            <?php if ($rol === 'student'): ?>
-                <div class="stap" id="stap2"><span class="nr">2</span>Instructeur</div>
-            <?php endif; ?>
-            <div class="stap" id="<?= $rol === 'instructeur' ? 'stap2' : 'stap3' ?>">
-                <span class="nr"><?= $rol === 'instructeur' ? '2' : '3' ?></span>Tijdstip
-            </div>
-            <div class="stap" id="<?= $rol === 'instructeur' ? 'stap3' : 'stap4' ?>">
-                <span class="nr"><?= $rol === 'instructeur' ? '3' : '4' ?></span>Details
-            </div>
+            <div class="stap"        id="stap2"><span class="nr">2</span>Tijdstip</div>
+            <div class="stap"        id="stap3"><span class="nr">3</span>Details</div>
         </div>
 
 
@@ -345,6 +399,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="instr-naam">
                         🎓 <?= htmlspecialchars($naam) ?>
                         <span style="font-size:10px;color:#28a745;margin-left:8px;">— Jouw beschikbaarheid</span>
+                        <?php
+                        $tKleur = $transmissie === 'automaat' ? '#3b82f6' : ($transmissie === 'beide' ? '#8b5cf6' : '#1b2940');
+                        ?>
+                        <span style="font-size:9px;padding:1px 6px;background:<?= $tKleur ?>;color:white;margin-left:4px;">
+                            🚗 <?= ucfirst($transmissie) ?>
+                        </span>
                     </div>
                     <div class="instr-meta">
                         ⏰ <?= $myData['begin'] ?> – <?= $myData['eind'] ?>
@@ -376,67 +436,86 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
 
-        <!-- ── STAP 2+3 (STUDENT-MODUS): INSTRUCTEUR + TIJDSLOT ── -->
+        <!-- ── STAP 2+3 (STUDENT-MODUS): GEKOPPELDE INSTRUCTEUR + TIJDSLOT ── -->
         <?php elseif ($rol === 'student'): ?>
         <div style="margin-bottom:12px;">
-            <div style="font-size:12px;color:#555;margin-bottom:8px;">
-                Beschikbare instructeurs op <strong><?= $dagNaam ?></strong>:
-            </div>
 
-            <?php if (empty($instructeurs)): ?>
-                <div class="geen-lessen">Geen instructeurs beschikbaar.</div>
+            <?php if (!$gekoppeldeInstructeur): ?>
+                <!-- Student heeft nog geen gekoppelde instructeur -->
+                <div class="geen-lessen">
+                    ⚠️ Je bent nog niet gekoppeld aan een instructeur.
+                    Neem contact op met de rijschool.
+                </div>
 
-            <?php else: ?>
-                <div class="instr-kaarten">
-                    <?php foreach ($instructeurs as $instr):
-                        $iID  = $instr['instructeurID'];
-                        $data = $instrData[$iID];
-                        $vol  = !$data['beschikbaar'] || $data['nogVrij'] <= 0;
-                    ?>
-                    <div class="instr-kaart <?= $vol ? 'vol' : '' ?>" id="instrKaart_<?= $iID ?>">
+            <?php else:
+                $iID  = $gekoppeldeInstructeur['instructeurID'];
+                $data = $instrData[$iID] ?? null;
+                $vol  = !$data || !$data['beschikbaar'] || $data['nogVrij'] <= 0;
+            ?>
+                <div style="font-size:12px;color:#555;margin-bottom:8px;">
+                    Jouw instructeur op <strong><?= $dagNaam ?></strong>:
+                </div>
 
-                        <!-- Naam + status -->
-                        <div class="instr-naam">
-                            🎓 <?= htmlspecialchars($data['naam']) ?>
-                            <?php if (!$data['beschikbaar']): ?>
-                                <span style="color:#999;font-size:10px;"> — niet beschikbaar op <?= $dagNaam ?></span>
-                            <?php elseif ($data['nogVrij'] <= 0): ?>
-                                <span style="color:#dc3545;font-size:10px;"> — VOL</span>
-                            <?php endif; ?>
-                        </div>
+                <div class="instr-kaart <?= $vol ? 'vol' : '' ?>" id="instrKaart_<?= $iID ?>">
 
-                        <?php if ($data['beschikbaar'] && !$vol): ?>
-
-                            <!-- Beschikbaarheid info -->
-                            <div class="instr-meta">
-                                ⏰ <?= $data['begin'] ?> – <?= $data['eind'] ?>
-                                &nbsp;·&nbsp; Nog <?= $data['nogVrij'] ?> plek(ken) vrij
-                                &nbsp;·&nbsp; Elke les = 2 uur
-                            </div>
-
-                            <!-- Gekleurde blokjes indicator -->
-                            <div class="plek-balk">
-                                <?php for ($p = 1; $p <= $data['maxLessen']; $p++): ?>
-                                    <div class="plek-blok <?= $p <= ($data['maxLessen'] - $data['nogVrij']) ? 'bezet' : 'vrij' ?>"></div>
-                                <?php endfor; ?>
-                            </div>
-
-                            <!-- Tijdslot knoppen -->
-                            <div style="font-size:11px;color:#555;margin:8px 0 4px;">Kies een tijdstip:</div>
-                            <div class="slot-knoppen" id="slots_<?= $iID ?>">
-                                <?php foreach ($data['slots'] as $slot): ?>
-                                    <button
-                                        type="button"
-                                        class="slot-knop <?= $slot['bezet'] ? 'bezet' : '' ?>"
-                                        <?= $slot['bezet'] ? 'disabled' : '' ?>
-                                        onclick="kiesTijdslotStudent(<?= $iID ?>, '<?= htmlspecialchars($data['naam']) ?>', '<?= $slot['tijd'] ?>', '<?= $slot['eind'] ?>')"
-                                    ><?= $slot['tijd'] ?>–<?= $slot['eind'] ?></button>
-                                <?php endforeach; ?>
-                            </div>
-
+                    <!-- Naam + transmissie badge -->
+                    <div class="instr-naam">
+                        🎓 <?= htmlspecialchars($data['naam'] ?? '') ?>
+                        <?php $tBadge = $data['transmissie'] ?? '';
+                              $tKleur = $tBadge === 'automaat' ? '#3b82f6' : ($tBadge === 'beide' ? '#8b5cf6' : '#1b2940');
+                        ?>
+                        <?php if ($tBadge): ?>
+                            <span style="font-size:9px;padding:1px 6px;background:<?= $tKleur ?>;color:white;margin-left:6px;">
+                                🚗 <?= ucfirst($tBadge) ?>
+                            </span>
+                        <?php endif; ?>
+                        <?php if (!$data || !$data['beschikbaar']): ?>
+                            <span style="color:#999;font-size:10px;"> — niet beschikbaar op <?= $dagNaam ?></span>
+                        <?php elseif ($vol): ?>
+                            <span style="color:#dc3545;font-size:10px;"> — VOL</span>
                         <?php endif; ?>
                     </div>
-                    <?php endforeach; ?>
+
+                    <!-- Bio van instructeur -->
+                    <?php if (!empty($gekoppeldeInstructeur['omschrijving'])): ?>
+                        <div class="instr-omschr"><?= htmlspecialchars($gekoppeldeInstructeur['omschrijving']) ?></div>
+                    <?php endif; ?>
+
+                    <!-- Gekoppelde auto tonen -->
+                    <?php if (!empty($data['autoNaam'])): ?>
+                        <div style="font-size:11px;color:#555;margin-bottom:6px;">
+                            🚗 Auto: <strong><?= htmlspecialchars($data['autoNaam']) ?></strong>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ($data && $data['beschikbaar'] && !$vol): ?>
+                        <!-- Beschikbaarheid info -->
+                        <div class="instr-meta">
+                            ⏰ <?= $data['begin'] ?> – <?= $data['eind'] ?>
+                            &nbsp;·&nbsp; Nog <?= $data['nogVrij'] ?> plek(ken) vrij
+                            &nbsp;·&nbsp; Elke les = 2 uur
+                        </div>
+
+                        <!-- Plek indicator -->
+                        <div class="plek-balk">
+                            <?php for ($p = 1; $p <= $data['maxLessen']; $p++): ?>
+                                <div class="plek-blok <?= $p <= ($data['maxLessen'] - $data['nogVrij']) ? 'bezet' : 'vrij' ?>"></div>
+                            <?php endfor; ?>
+                        </div>
+
+                        <!-- Tijdslot knoppen -->
+                        <div style="font-size:11px;color:#555;margin:8px 0 4px;">Kies een tijdstip:</div>
+                        <div class="slot-knoppen">
+                            <?php foreach ($data['slots'] as $slot): ?>
+                                <button
+                                    type="button"
+                                    class="slot-knop <?= $slot['bezet'] ? 'bezet' : '' ?>"
+                                    <?= $slot['bezet'] ? 'disabled' : '' ?>
+                                    onclick="kiesTijdslot('<?= $slot['tijd'] ?>', '<?= $slot['eind'] ?>')"
+                                ><?= $slot['tijd'] ?>–<?= $slot['eind'] ?></button>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
             <?php endif; ?>
         </div>
@@ -463,7 +542,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <!-- Hidden: datum, tijd en instructeurID worden via JS ingevuld -->
                 <input type="hidden" name="lesDatum"      id="hiddenDatum" value="<?= htmlspecialchars($gekozenDatum) ?>">
                 <input type="hidden" name="lestijd"       id="hiddenTijd">
-                <input type="hidden" name="instructeurID" id="hiddenInstr" value="<?= $rol === 'instructeur' ? $userID : '' ?>">
+                <input type="hidden" name="instructeurID" id="hiddenInstr" value="<?= $rol === 'instructeur' ? $userID : ($gekoppeldeInstructeur['instructeurID'] ?? '') ?>">
 
                 <!-- Voor welke leerling? (alleen zichtbaar voor instructeur) -->
                 <?php if ($rol === 'instructeur'): ?>
@@ -472,12 +551,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <select name="studentID" required>
                         <option value="">— Kies een leerling —</option>
                         <?php foreach ($studenten as $st):
-                            $tv  = $st['tussenvoegsel'] ? $st['tussenvoegsel'] . ' ' : '';
-                            $vol = $st['voornaam'] . ' ' . $tv . $st['achternaam'];
+                            $tv      = $st['tussenvoegsel'] ? $st['tussenvoegsel'] . ' ' : '';
+                            $vol     = $st['voornaam'] . ' ' . $tv . $st['achternaam'];
+                            $tLabel  = ucfirst($st['transmissie'] ?? '');
                         ?>
                             <option value="<?= $st['studentID'] ?>"
                                 <?= (isset($_POST['studentID']) && $_POST['studentID'] == $st['studentID']) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($vol) ?>
+                                <?= htmlspecialchars($vol) ?> (<?= $tLabel ?>)
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -522,25 +602,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ><?= htmlspecialchars($_POST['onderwerpen'] ?? '') ?></textarea>
                 </div>
 
-                <!-- Auto: alleen instructeur kiest de auto -->
+                <!-- Auto: alleen instructeur kiest de auto (gefilterd op transmissie) -->
                 <?php if ($rol === 'instructeur'): ?>
                 <div class="form-group">
-                    <label>🚗 Auto <span style="color:#dc3545;">*</span></label>
+                    <label>🚗 Auto
+                        <span style="font-size:10px;color:#666;">(<?= ucfirst($transmissie) ?> auto's)</span>
+                        <span style="color:#dc3545;">*</span>
+                    </label>
+                    <?php if (empty($autos)): ?>
+                        <div class="fout" style="margin:0;">Geen <?= $transmissie ?> auto's beschikbaar.</div>
+                        <input type="hidden" name="autoID" value="0">
+                    <?php else: ?>
                     <select name="autoID" required>
                         <option value="">— Kies een auto —</option>
                         <?php foreach ($autos as $auto): ?>
                             <option value="<?= $auto['autoID'] ?>">
-                                <?= htmlspecialchars($auto['merk'] . ' ' . $auto['type'] . ' (' . $auto['kenteken'] . ')') ?>
+                                <?= htmlspecialchars($auto['merk'] . ' ' . $auto['type'] . ' (' . $auto['kenteken'] . ') — ' . ucfirst($auto['transmissie'])) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
+                    <?php endif; ?>
                 </div>
                 <?php else: ?>
-                    <!-- Student kiest geen auto: instructeur wijst dit toe -->
-                    <!-- Eerste beschikbare auto als standaard -->
-                    <?php if (!empty($autos)): ?>
-                        <input type="hidden" name="autoID" value="<?= $autos[0]['autoID'] ?>">
-                    <?php endif; ?>
+                    <!-- Student gebruikt automatisch de auto van zijn instructeur -->
+                    <input type="hidden" name="autoID" value="<?= $instrData[$gekoppeldeInstructeur['instructeurID'] ?? 0]['autoID'] ?? ($autos[0]['autoID'] ?? 1) ?>">
                 <?php endif; ?>
 
                 <!-- Foutmelding bij validatiefout -->
@@ -567,7 +652,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
    ============================================================ */
 
 const rolIsInstructeur = <?= $rol === 'instructeur' ? 'true' : 'false' ?>;
-const aantalStappen    = rolIsInstructeur ? 3 : 4;
+const aantalStappen    = 3; // altijd 3 stappen: Datum → Tijdstip → Details
 
 /**
  * laadPagina — Herlaadt de pagina met de nieuw gekozen datum.
@@ -589,22 +674,11 @@ function kiesTijdslot(tijd, eind) {
 }
 
 /**
- * kiesTijdslotStudent — Wordt gebruikt door de student.
- * Slaat zowel de instructeur als het tijdstip op en toont het formulier.
+ * kiesTijdslotStudent — Niet meer nodig: student heeft 1 vaste instructeur.
+ * Behouden als alias voor achterwaartse compatibiliteit.
  */
 function kiesTijdslotStudent(iID, instrNaam, tijd, eind) {
-    /* Markeer de instructeurskaart */
-    document.querySelectorAll('.instr-kaart').forEach(k => k.classList.remove('gekozen'));
-    document.getElementById('instrKaart_' + iID)?.classList.add('gekozen');
-
-    /* Sla instructeurID op en toon naam in samenvatting */
-    document.getElementById('hiddenInstr').value = iID;
-    const samInstr = document.getElementById('samInstr');
-    if (samInstr) samInstr.textContent = instrNaam;
-
-    markeerSlotKnop(tijd);
-    toonFormulier(tijd, eind);
-    setStap(4);
+    kiesTijdslot(tijd, eind);
 }
 
 /**
