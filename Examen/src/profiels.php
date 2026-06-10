@@ -147,7 +147,7 @@ if (!$student) {
 
             <div style="display: flex; gap: 15px; flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 250px;">
-                    <label style="display:block; font-weight:bold; margin-bottom:5px;">Geboortedatum (Niet wijzigbaar)</label>
+                    <label style="display:block; font-weight:bold; margin-bottom:5px;">Geboortedatum</label>
                     <input type="text" value="<?= date('d-m-Y', strtotime($student['geboortedatum'])) ?>" disabled style="width:100%; padding: 10px; border: 1px solid #eee; background:#fafafa; border-radius: 6px; color:#777;">
                 </div>
                 <div style="flex: 1; min-width: 250px;">
