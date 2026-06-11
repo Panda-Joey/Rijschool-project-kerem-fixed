@@ -17,13 +17,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['goedkeur_lesID'])) {
     $lesID     = intval($_POST['goedkeur_lesID']);
     $studentID = intval($_POST['goedkeur_studentID']);
 
-    // Markeer les als goedgekeurd en sla tijdstip op
-    $conn->query("UPDATE lessen SET goedgekeurd = 1, goedgekeurd_op = NOW() WHERE lesID = $lesID");
+    // Controleer of de les nog NIET goedgekeurd is (voorkomt dubbele aftrek)
+    $check = $conn->query("SELECT goedgekeurd FROM lessen WHERE lesID = $lesID AND vervallen = 0");
+    $rij   = $check ? $check->fetch_assoc() : null;
 
-    // Trek 2 uur af van het pakket (minimum 0)
-    $conn->query("UPDATE student_lespakket SET overige_uren = GREATEST(0, overige_uren - 2) WHERE studentID = $studentID");
+    if ($rij && $rij['goedgekeurd'] != 1) {
+        // Markeer les als goedgekeurd
+        $conn->query("UPDATE lessen SET goedgekeurd = 1, goedgekeurd_op = NOW() WHERE lesID = $lesID");
 
-    // Herlaad pagina zodat de knop verdwijnt
+        // Trek 2 uur af van het lespakket van de student (minimum 0)
+        $conn->query("UPDATE student_lespakket SET overige_uren = GREATEST(0, overige_uren - 2) WHERE studentID = $studentID");
+    }
+
+    // Herlaad pagina
     header("Location: " . $_SERVER['REQUEST_URI']);
     exit;
 }
