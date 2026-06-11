@@ -1,5 +1,4 @@
 <?php
-session_start();
 $servername = "mysql";
 $username   = "root";
 $password   = "password";
@@ -34,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 redenVervalt = '$reden'
             WHERE lesID = $lesID
         ");
-        header("Location: kalender.php?maand=$maand");
+        header("Location: index.php?maand=$maand");
         exit;
     }
 }
@@ -49,14 +48,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
 <div class="container">
+
+    <?php require_once 'nav.php'; ?>
+
     <h1>Les Annuleren</h1>
 
-    <div class="top-buttons">
-        <a href="dashboard.php" class="nav-btn" style="text-decoration:none;color:inherit;">Dashboard</a>
-        <a href="kalender.php?maand=<?= $maand ?>" class="nav-btn" style="text-decoration:none;color:inherit;">Kalender</a>
-        <a href="beschikbaarheid.php" class="nav-btn" style="text-decoration:none;color:inherit;">Rooster</a>
-        <div class="nav-btn">Profiel</div>
-    </div>
+    
 
     <div class="annuleer-form">
 

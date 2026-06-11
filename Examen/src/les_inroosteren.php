@@ -41,7 +41,6 @@ $doelen = [
     'Inhalen', 'Noodremmen', 'Spiegels & dode hoek', 'Theorie in praktijk',
 ];
 
-
 /* ============================================================
    DATA OPHALEN
    ============================================================ */
@@ -123,7 +122,6 @@ if ($rol === 'instructeur' && $instrAuto) {
 $gekozenDatum = $_GET['datum'] ?? $_POST['lesDatum'] ?? date('Y-m-d', strtotime('+1 day'));
 $dagNr        = date('N', strtotime($gekozenDatum)); // 1=Ma ... 7=Zo
 $dagNaam      = $dagNamen[$dagNr];
-
 
 /* ============================================================
    HULPFUNCTIE: bouwSlotsVoorInstructeur()
@@ -210,7 +208,6 @@ if ($rol === 'instructeur') {
         : null;
     $instrData[$iID]['autoID']      = $gekoppeldeInstructeur['autoID'] ?? null;
 }
-
 
 /* ============================================================
    FORMULIER VERWERKEN
@@ -317,24 +314,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 <div class="container">
 
-    <!-- ── HEADER ─────────────────────────────────────────────── -->
-    <div class="dash-header">
-        <div>
-            <h2><?= $rol === 'instructeur' ? '📋 Les inplannen voor leerling' : '📅 Nieuwe les aanvragen' ?></h2>
-            <span><?= htmlspecialchars($naam) ?></span>
-        </div>
-        <a href="logout.php" class="logout-btn">Uitloggen →</a>
-    </div>
+    <?php require_once 'nav.php'; ?>
 
-    <!-- ── NAVIGATIE ──────────────────────────────────────────── -->
-    <div class="top-buttons">
-        <a href="dashboard.php"       class="nav-btn">Dashboard</a>
-        <a href="index.php"           class="nav-btn">Kalender</a>
-        <a href="beschikbaarheid.php" class="nav-btn">Rooster</a>
-        <div                          class="nav-btn active">
-            <?= $rol === 'instructeur' ? '+ Les inplannen' : '+ Nieuwe les' ?>
-        </div>
-    </div>
+    
 
     <!-- ── FEEDBACK ───────────────────────────────────────────── -->
     <?php if ($succes): ?>
@@ -354,7 +336,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="stap"        id="stap3"><span class="nr">3</span>Details</div>
         </div>
 
-
         <!-- ── STAP 1: DATUM KIEZEN ─────────────────────────── -->
         <div class="datum-wrap">
             <div class="form-group" style="margin-bottom:0;">
@@ -373,7 +354,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
         </div>
-
 
         <!-- ── STAP 2 (INSTRUCTEUR-MODUS): EIGEN TIJDSLOTS ──── -->
         <?php if ($rol === 'instructeur'):
@@ -434,7 +414,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             <?php endif; ?>
         </div>
-
 
         <!-- ── STAP 2+3 (STUDENT-MODUS): GEKOPPELDE INSTRUCTEUR + TIJDSLOT ── -->
         <?php elseif ($rol === 'student'): ?>
@@ -520,7 +499,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
         </div>
         <?php endif; ?>
-
 
         <!-- ── STAP 3/4: DETAILFORMULIER ────────────────────────
              Verborgen totdat een tijdslot gekozen is.
@@ -644,7 +622,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     </div><!-- /inrooster-wrap -->
 </div><!-- /container -->
-
 
 <script>
 /* ============================================================

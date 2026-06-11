@@ -161,10 +161,8 @@ foreach ($instructeurs as $instr) {
 
     <h1>Les Wijzigen</h1>
 
-    <div class="top-buttons">
-        <a href="dashboard.php" class="nav-btn">Dashboard</a>
-        <a href="index.php"     class="nav-btn">Kalender</a>
-        <div class="nav-btn">Rooster</div>
+    <?php require_once 'nav.php'; ?>
+
         <div class="nav-btn">Profiel</div>
     </div>
 
@@ -289,7 +287,7 @@ foreach ($instructeurs as $instr) {
             </div>
 
             <div class="btn-row">
-                <a href="index.php" class="btn-terug">← Terug</a>
+                <a href="kalender.php" class="btn-terug">← Terug</a>
                 <button type="submit" class="btn-opslaan">💾 Opslaan</button>
             </div>
 
