@@ -1,20 +1,14 @@
 <?php
-if (!isset($_SESSION['userID']) || $_SESSION['rol'] !== 'student') {
-    header("Location: /login.php");
-    exit;
-}
 
 $servername = "mysql";
 $username   = "root";
 $password   = "password";
 $dbname     = "Eend";
-
 $conn = new mysqli($servername, $username, $password, $dbname);
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
 
-$userID = intval($_SESSION['userID']);
+$rol    = $_SESSION['rol'];
+$userID = $_SESSION['userID'];
 $naam   = $_SESSION['naam'];
 $maand  = isset($_GET['maand']) ? intval($_GET['maand']) : intval(date('m'));
 $jaar   = 2026;
@@ -24,87 +18,93 @@ $maanden = [
     9=>"September", 10=>"Oktober", 11=>"November", 12=>"December"
 ];
 
-// ── Student Query (Lessen ophalen) ───────────────────────────────────
-$stmt = $conn->prepare("
-    SELECT lessen.*,
-           instructeurs.voornaam  AS iVoornaam,
-           instructeurs.achternaam AS iAchternaam,
-           instructeurs.telefoon  AS iTelefoon,
-           instructeurs.omschrijving AS iOmschrijving,
-           Autos.merk, Autos.type, Autos.kenteken
-    FROM lessen
-    JOIN instructeurs ON lessen.instructeurID = instructeurs.instructeurID
-    JOIN Autos        ON lessen.autoID        = Autos.autoID
-    WHERE lessen.studentID = ?
-    AND MONTH(lesDatum) = ?
-    AND YEAR(lesDatum)  = ?
-    AND vervallen = 0
-    ORDER BY lesDatum ASC, lestijd ASC
-");
-$stmt->bind_param("iii", $userID, $maand, $jaar);
-$stmt->execute();
-$result = $stmt->get_result();
-$lessen = [];
-while ($row = $result->fetch_assoc()) {
-    $lessen[] = $row;
+// ── Query op basis van rol ───────────────────────────────────
+if ($rol === 'instructeur') {
+    $sql = "
+        SELECT lessen.*,
+               studenten.voornaam  AS sVoornaam,
+               studenten.achternaam AS sAchternaam,
+               studenten.telefoon  AS sTelefoon,
+               studenten.beperking AS sBeperking,
+               Autos.merk, Autos.type, Autos.kenteken
+        FROM lessen
+        JOIN studenten ON lessen.studentID  = studenten.studentID
+        JOIN Autos     ON lessen.autoID     = Autos.autoID
+        WHERE lessen.instructeurID = $userID
+        AND MONTH(lesDatum) = $maand
+        AND YEAR(lesDatum)  = $jaar
+        AND vervallen = 0
+        ORDER BY lesDatum ASC, lestijd ASC
+    ";
+} else {
+    // student
+    $sql = "
+        SELECT lessen.*,
+               instructeurs.voornaam  AS iVoornaam,
+               instructeurs.achternaam AS iAchternaam,
+               instructeurs.telefoon  AS iTelefoon,
+               instructeurs.omschrijving AS iOmschrijving,
+               Autos.merk, Autos.type, Autos.kenteken
+        FROM lessen
+        JOIN instructeurs ON lessen.instructeurID = instructeurs.instructeurID
+        JOIN Autos        ON lessen.autoID        = Autos.autoID
+        WHERE lessen.studentID = $userID
+        AND MONTH(lesDatum) = $maand
+        AND YEAR(lesDatum)  = $jaar
+        AND vervallen = 0
+        ORDER BY lesDatum ASC, lestijd ASC
+    ";
 }
-$stmt->close();
 
-// ── Volgende les bepalen ─────────────────────────────────────────────
-$vandaag     = date('Y-m-d');
+$result  = $conn->query($sql);
+$lessen  = [];
+while ($row = $result->fetch_assoc()) $lessen[] = $row;
+
+// ── Volgende les ─────────────────────────────────────────────
+$vandaag    = date('Y-m-d');
 $volgendeLes = null;
 foreach ($lessen as $les) {
-    if ($les['lesDatum'] >= $vandaag) { 
-        $volgendeLes = $les; 
-        break; 
-    }
+    if ($les['lesDatum'] >= $vandaag) { $volgendeLes = $les; break; }
 }
 
-// ── Stats (Lessen & Uren) ────────────────────────────────────────────
+// ── Stats ────────────────────────────────────────────────────
 $totaalLessen = count($lessen);
-$totaalUren   = $totaalLessen; // Elke les = 1 uur
-
-// ── GEALTEERDE QUERY: Pakket info ophalen via JOINs ──────────────────
-$stmtSt = $conn->prepare("
-    SELECT lp.naam AS lesPakket, lp.uren AS lesUren, sl.overige_uren
-    FROM student_lespakket sl
-    JOIN lespakket lp ON sl.idlespakket = lp.idlespakket
-    WHERE sl.studentID = ?
-    LIMIT 1
-");
-$stmtSt->bind_param("i", $userID);
-$stmtSt->execute();
-$resSt = $stmtSt->get_result();
-$st = $resSt->fetch_assoc();
-$stmtSt->close();
+$totaalUren   = $totaalLessen * 2; // Elke les duurt 2 uur
 ?>
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Dashboard — <?= htmlspecialchars($naam) ?></title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — <?= htmlspecialchars($naam) ?></title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="container">
 
+    <!-- Header -->
     <div class="dash-header">
         <div>
-            <h2>👋 <?= htmlspecialchars($naam) ?> <span class="rol-badge badge-student">🚗 Student</span></h2>
+            <h2>
+                👋 <?= htmlspecialchars($naam) ?>
+                <span class="rol-badge <?= $rol === 'instructeur' ? 'badge-instructeur' : 'badge-student' ?>">
+                    <?= $rol === 'instructeur' ? '🎓 Instructeur' : '🚗 Student' ?>
+                </span>
+            </h2>
             <span>Rijschool Dashboard</span>
         </div>
-        <a href="../logout.php" class="logout-btn">Uitloggen →</a>
+        <a href="logout.php" class="logout-btn">Uitloggen →</a>
     </div>
 
+    <!-- Nav buttons -->
     <div class="top-buttons">
         <div class="nav-btn active">Dashboard</div>
         <a href="kalender.php" class="nav-btn" style="text-decoration:none;color:inherit;">Kalender</a>
-        <!-- <a href="beschikbaarheid.php" class="nav-btn" style="text-decoration:none;color:inherit;">Rooster</a> -->
         <a href="Profiels.php" class="nav-btn" style="text-decoration:none;color:inherit;">Profiel</a>
         <a href="les_inroosteren.php" class="nav-btn" style="background:#1b2940;color:white;text-decoration:none;">+ Nieuwe les</a>
     </div>
 
+    <!-- Stats -->
     <div class="stats-grid">
         <div class="stat-card">
             <div class="getal"><?= $totaalLessen ?></div>
@@ -114,16 +114,32 @@ $stmtSt->close();
             <div class="getal"><?= $totaalUren ?></div>
             <div class="label">Lesuren gepland</div>
         </div>
+        <?php if ($rol === 'student'):
+            /* Pakket info via student_lespakket JOIN lespakket */
+            $stmtPakket = $conn->prepare("
+                SELECT lp.naam AS lesPakket, lp.uren AS lesUren, sl.overige_uren
+                FROM student_lespakket sl
+                JOIN lespakket lp ON sl.idlespakket = lp.idlespakket
+                WHERE sl.studentID = ?
+                LIMIT 1
+            ");
+            $stmtPakket->bind_param("i", $userID);
+            $stmtPakket->execute();
+            $st = $stmtPakket->get_result()->fetch_assoc();
+            $stmtPakket->close();
+        ?>
         <div class="stat-card">
-            <div class="getal"><?= htmlspecialchars($st['lesUren'] ?? '—') ?></div>
+            <div class="getal"><?= $st['lesUren'] ?? '—' ?></div>
             <div class="label">Totaal lesuren pakket</div>
         </div>
         <div class="stat-card">
             <div class="getal" style="font-size:16px;"><?= htmlspecialchars($st['lesPakket'] ?? '—') ?></div>
             <div class="label">Lespakket</div>
         </div>
+        <?php endif; ?>
     </div>
 
+    <!-- Volgende les -->
     <div class="volgende-les">
         <?php if ($volgendeLes): ?>
             <div>
@@ -133,56 +149,117 @@ $stmtSt->close();
                     om <?= substr($volgendeLes['lestijd'],0,5) ?>
                 </div>
                 <div class="detail">
-                    📍 <?= htmlspecialchars($volgendeLes['ophaalLocatie']) ?> &nbsp;·&nbsp; 🎯 <?= htmlspecialchars($volgendeLes['doel']) ?>
+                    📍 <?= htmlspecialchars($volgendeLes['ophaalLocatie']) ?>
+                    &nbsp;·&nbsp;
+                    🎯 <?= htmlspecialchars($volgendeLes['doel']) ?>
                 </div>
             </div>
             <div style="font-size:13px;opacity:.85;">
-                🎓 <?= htmlspecialchars($volgendeLes['iVoornaam'] . ' ' . $volgendeLes['iAchternaam']) ?><br>
-                🚗 <?= htmlspecialchars($volgendeLes['merk'] . ' ' . $volgendeLes['type']) ?> (<?= htmlspecialchars($volgendeLes['kenteken']) ?>)
+                <?php if ($rol === 'instructeur'): ?>
+                    👤 <?= htmlspecialchars($volgendeLes['sVoornaam'] . ' ' . $volgendeLes['sAchternaam']) ?>
+                    <?php if ($volgendeLes['sBeperking']): ?>
+                        <span class="tag-beperking">⚠️ Beperking</span>
+                    <?php endif; ?>
+                <?php else: ?>
+                    🎓 <?= htmlspecialchars($volgendeLes['iVoornaam'] . ' ' . $volgendeLes['iAchternaam']) ?>
+                <?php endif; ?>
+                <br>
+                🚗 <?= htmlspecialchars($volgendeLes['merk'] . ' ' . $volgendeLes['type']) ?>
+                (<?= htmlspecialchars($volgendeLes['kenteken']) ?>)
             </div>
         <?php else: ?>
             <div class="geen">Geen aankomende lessen deze maand.</div>
         <?php endif; ?>
     </div>
 
+    <!-- Maand navigatie -->
     <div class="maand-nav">
         <a href="?maand=<?= ($maand > 5) ? $maand - 1 : 5 ?>">❮</a>
         <h3><?= $maanden[$maand] ?? $maand ?> <?= $jaar ?></h3>
         <a href="?maand=<?= ($maand < 12) ? $maand + 1 : 12 ?>">❯</a>
     </div>
 
+    <!-- Lessenlijst -->
     <div class="les-lijst">
         <?php if (empty($lessen)): ?>
-            <div class="geen-lessen">📭 Geen lessen gepland voor <?= $maanden[$maand] ?? $maand ?>.</div>
+            <div class="geen-lessen">
+                📭 Geen lessen gepland voor <?= $maanden[$maand] ?? $maand ?>.
+            </div>
         <?php else: ?>
             <?php foreach ($lessen as $les):
                 $isVandaag  = $les['lesDatum'] === $vandaag;
-                $kaartClass = $isVandaag ? ' vandaag' : ($les['lesDatum'] < $vandaag ? ' verleden' : '');
+                $isVerleden = $les['lesDatum'] < $vandaag;
+                $kaartClass = $isVandaag ? ' vandaag' : ($isVerleden ? ' verleden' : '');
                 $dagNamen   = ['','Ma','Di','Wo','Do','Vr','Za','Zo'];
                 $dagNr      = date('N', strtotime($les['lesDatum']));
             ?>
             <div class="les-kaart<?= $kaartClass ?>">
+
+                <!-- Datum blok -->
                 <div class="les-datum-blok">
                     <div style="font-size:9px;text-transform:uppercase;"><?= $dagNamen[$dagNr] ?></div>
                     <div class="dag"><?= date('d', strtotime($les['lesDatum'])) ?></div>
                     <div class="maandnaam"><?= date('M', strtotime($les['lesDatum'])) ?></div>
                 </div>
 
+                <!-- Info -->
                 <div class="les-info">
                     <span class="tijd-badge">⏰ <?= substr($les['lestijd'],0,5) ?></span>
-                    <?php if ($isVandaag): ?><span class="tijd-badge" style="background:#f59e0b;">VANDAAG</span><?php endif; ?>
+                    <?php if ($isVandaag): ?>
+                        <span class="tijd-badge" style="background:#f59e0b;">VANDAAG</span>
+                    <?php endif; ?>
                     <h4><?= htmlspecialchars($les['doel']) ?></h4>
                     <p>📍 Ophalen: <strong><?= htmlspecialchars($les['ophaalLocatie']) ?></strong></p>
                     <p>📝 <?= htmlspecialchars($les['onderwerpen']) ?></p>
-                    <p>🎓 Instructeur: <strong><?= htmlspecialchars($les['iVoornaam'] . ' ' . $les['iAchternaam']) ?></strong></p>
-                    <?php if (!empty($les['iTelefoon'])): ?><p>📞 <?= htmlspecialchars($les['iTelefoon']) ?></p><?php endif; ?>
+
+                    <?php if ($rol === 'instructeur'): ?>
+                        <p>👤 Student:
+                            <strong><?= htmlspecialchars($les['sVoornaam'] . ' ' . $les['sAchternaam']) ?></strong>
+                            <?php if ($les['sBeperking']): ?>
+                                <span class="tag-beperking">⚠️ Beperking</span>
+                            <?php endif; ?>
+                        </p>
+                        <?php if (!empty($les['sTelefoon'])): ?>
+                            <p>📞 <?= htmlspecialchars($les['sTelefoon']) ?></p>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <p>🎓 Instructeur:
+                            <strong><?= htmlspecialchars($les['iVoornaam'] . ' ' . $les['iAchternaam']) ?></strong>
+                        </p>
+                        <?php if (!empty($les['iTelefoon'])): ?>
+                            <p>📞 <?= htmlspecialchars($les['iTelefoon']) ?></p>
+                        <?php endif; ?>
+                        <?php if (!empty($les['iOmschrijving'])): ?>
+                            <p style="color:#888;font-style:italic;"><?= htmlspecialchars($les['iOmschrijving']) ?></p>
+                        <?php endif; ?>
+                    <?php endif; ?>
                 </div>
 
+                <!-- Extra: auto info -->
                 <div class="les-extra">
                     <p><strong>🚗 Auto</strong></p>
                     <p><?= htmlspecialchars($les['merk'] . ' ' . $les['type']) ?></p>
                     <p>🔑 <?= htmlspecialchars($les['kenteken']) ?></p>
+                    <?php if (!empty($les['redenWijzig'])): ?>
+                        <p style="margin-top:6px;padding-top:6px;border-top:1px solid #ddd;">
+                            <strong>📝 Gewijzigd:</strong><br>
+                            <em style="color:#888;"><?= htmlspecialchars($les['redenWijzig']) ?></em>
+                        </p>
+                    <?php endif; ?>
                 </div>
+
+                <!-- Acties (alleen voor instructeur) -->
+                <?php if ($rol === 'instructeur' && !$isVerleden): ?>
+                <div class="les-acties">
+                    <a href="wijzig.php?lesID=<?= $les['lesID'] ?>" class="edit" style="text-decoration:none;display:inline-block;text-align:center;">
+                        Wijzig
+                    </a>
+                    <a href="annuleer.php?lesID=<?= $les['lesID'] ?>&maand=<?= $maand ?>" class="cancel" style="text-decoration:none;display:inline-block;text-align:center;">
+                        Annuleer
+                    </a>
+                </div>
+                <?php endif; ?>
+
             </div>
             <?php endforeach; ?>
         <?php endif; ?>
