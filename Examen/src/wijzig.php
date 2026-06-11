@@ -1,4 +1,5 @@
 <?php
+
 $servername = "mysql";
 $username   = "root";
 $password   = "password";
@@ -6,13 +7,16 @@ $dbname     = "Eend";
 $conn = new mysqli($servername, $username, $password, $dbname);
 if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
 
-
-
 $lesID  = isset($_GET['lesID']) ? intval($_GET['lesID']) : 0;
 $succes = "";
 $fout   = "";
 
-// ── Haal huidige les op ──────────────────────────────────────
+// ── Haal huidige les op ─────────────────────────────────────
+// Instructeurs mogen elke les wijzigen waarbij zij de instructeur zijn,
+// ook als de les door de leerling zelf is aangemaakt.
+$instrID   = $_SESSION['userID'] ?? 0;
+$rol       = $_SESSION['rol']    ?? '';
+
 $lesResult = $conn->query("
     SELECT lessen.*, instructeurs.voornaam, instructeurs.achternaam
     FROM lessen
@@ -21,6 +25,11 @@ $lesResult = $conn->query("
 ");
 if (!$lesResult || $lesResult->num_rows === 0) die("Les niet gevonden.");
 $les = $lesResult->fetch_assoc();
+
+// Toegangscontrole: alleen de instructeur van deze les mag hem wijzigen
+if ($rol === 'instructeur' && $les['instructeurID'] != $instrID) {
+    die("Je hebt geen toegang om deze les te wijzigen.");
+}
 
 // ── Haal alle instructeurs op ────────────────────────────────
 $instrResult  = $conn->query("SELECT * FROM instructeurs ORDER BY voornaam");
@@ -32,6 +41,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nieuweDatum = $conn->real_escape_string($_POST['lesDatum']);
     $nieuweTijd  = $conn->real_escape_string($_POST['lestijd']);
     $nieuweInstr = intval($_POST['instructeurID']);
+    // Alleen instructeur mag het doel aanpassen, student krijgt het huidige doel
+    $nieuwDoel = ($rol === 'instructeur')
+        ? $conn->real_escape_string(trim($_POST['doel'] ?? $les['doel']))
+        : $conn->real_escape_string($les['doel']);
     $reden       = trim($conn->real_escape_string($_POST['reden'] ?? ''));
 
     if ($reden === '') {
@@ -52,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($conn->query("
                 UPDATE lessen
                 SET lesDatum='$nieuweDatum', lestijd='$nieuweTijd',
-                    instructeurID=$nieuweInstr, redenWijzig='$reden'
+                    instructeurID=$nieuweInstr, doel='$nieuwDoel', redenWijzig='$reden'
                 WHERE lesID=$lesID
             ")) {
                 $succes = "Les succesvol bijgewerkt!";
@@ -146,12 +159,7 @@ foreach ($instructeurs as $instr) {
 
     <h1>Les Wijzigen</h1>
 
-    <div class="top-buttons">
-        <a href="<?= htmlspecialchars(srcDashboardPath(), ENT_QUOTES, 'UTF-8') ?>" class="nav-btn">Dashboard</a>
-        <a href="kalender.php"     class="nav-btn">Kalender</a>
-        <div class="nav-btn">Rooster</div>
-        <div class="nav-btn">Profiel</div>
-    </div>
+    <?php require_once 'nav.php'; ?>
 
     <div class="wijzig-form">
 
@@ -161,7 +169,7 @@ foreach ($instructeurs as $instr) {
             <p>Datum: <?= date('d-m-Y', strtotime($les['lesDatum'])) ?></p>
             <p>Tijd: <?= substr($les['lestijd'],0,5) ?></p>
             <p>Instructeur: <?= htmlspecialchars($les['voornaam'] . ' ' . $les['achternaam']) ?></p>
-            <p>Doel: <?= htmlspecialchars($les['doel']) ?></p>
+            <p>Doel: <strong><?= htmlspecialchars($les['doel']) ?></strong> <span style="font-size:10px;color:#1b2940;">(aanpasbaar hieronder)</span></p>
             <?php if (!empty($les['redenWijzig'])): ?>
                 <div class="reden-huidig">
                     📝 Laatste reden: <em><?= htmlspecialchars($les['redenWijzig']) ?></em>
@@ -170,7 +178,7 @@ foreach ($instructeurs as $instr) {
         </div>
 
         <?php if ($succes): ?>
-            <div class="succes">✅ <?= $succes ?> <a href="kalender.php">Terug naar kalender</a></div>
+            <div class="succes">✅ <?= $succes ?> <a href="index.php">Terug naar kalender</a></div>
         <?php endif; ?>
         <?php if ($fout): ?>
             <div class="fout">⚠️ <?= $fout ?></div>
@@ -236,6 +244,28 @@ foreach ($instructeurs as $instr) {
                 </div>
                 <div id="tijd-waarschuwing" style="font-size:11px;color:#c00;margin-top:4px;"></div>
             </div>
+
+            <!-- Leerdoel: alleen instructeur mag dit aanpassen -->
+            <?php if ($_SESSION['rol'] === 'instructeur'): ?>
+            <div class="form-group">
+                <label>🎯 Leerdoel</label>
+                <select name="doel">
+                    <?php
+                    $doelen = ['Rotondes','Snelweg','Parkeren','Voorrang','Stadsverkeer',
+                               'Inhalen','Noodremmen','Spiegels & dode hoek','Theorie in praktijk',
+                               'Nader te bepalen door instructeur'];
+                    $huidigDoel = $_POST['doel'] ?? $les['doel'];
+                    foreach ($doelen as $d) {
+                        $sel = ($d === $huidigDoel) ? 'selected' : '';
+                        echo "<option value='$d' $sel>$d</option>";
+                    }
+                    ?>
+                </select>
+            </div>
+            <?php else: ?>
+                <!-- Student: doel blijft ongewijzigd -->
+                <input type="hidden" name="doel" value="<?= htmlspecialchars($les['doel']) ?>">
+            <?php endif; ?>
 
             <!-- Reden — verplicht -->
             <div class="form-group">
@@ -364,4 +394,4 @@ updateTijdSlots();
 updateCounter();
 </script>
 </body>
-</ht
+</html>
