@@ -14,6 +14,46 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+$colCheck = $conn->query("SHOW COLUMNS FROM lessen LIKE 'goedgekeurd'");
+if ($colCheck && $colCheck->num_rows === 0) {
+    $conn->query("ALTER TABLE lessen ADD COLUMN goedgekeurd TINYINT(1) NOT NULL DEFAULT 0");
+    $conn->query("ALTER TABLE lessen ADD COLUMN goedgekeurd_op DATETIME NULL DEFAULT NULL");
+}
+
+$instructeurID = (int) $_SESSION['userID'];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['goedkeur_lesID'])) {
+    $lesID     = (int) $_POST['goedkeur_lesID'];
+    $studentID = (int) $_POST['goedkeur_studentID'];
+
+    $check = $conn->query("SELECT goedgekeurd FROM lessen WHERE lesID = $lesID AND instructeurID = $instructeurID AND vervallen = 0");
+    $rij   = $check ? $check->fetch_assoc() : null;
+
+    if ($rij && (int) $rij['goedgekeurd'] !== 1) {
+        $conn->query("UPDATE lessen SET goedgekeurd = 1, goedgekeurd_op = NOW() WHERE lesID = $lesID");
+        $conn->query("UPDATE student_lespakket SET overige_uren = GREATEST(0, overige_uren - 2) WHERE studentID = $studentID");
+    }
+
+    header('Location: ' . $_SERVER['REQUEST_URI']);
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['afkeur_lesID'])) {
+    $lesID     = (int) $_POST['afkeur_lesID'];
+    $studentID = (int) $_POST['afkeur_studentID'];
+
+    $check = $conn->query("SELECT goedgekeurd FROM lessen WHERE lesID = $lesID AND instructeurID = $instructeurID AND vervallen = 0");
+    $rij   = $check ? $check->fetch_assoc() : null;
+
+    if ($rij && (int) $rij['goedgekeurd'] === 1) {
+        $conn->query("UPDATE lessen SET goedgekeurd = 0, goedgekeurd_op = NULL WHERE lesID = $lesID");
+        $conn->query("UPDATE student_lespakket SET overige_uren = overige_uren + 2 WHERE studentID = $studentID");
+    }
+
+    header('Location: ' . $_SERVER['REQUEST_URI']);
+    exit;
+}
+
 $userID = intval($_SESSION['userID']);
 $naam   = $_SESSION['naam'];
 $maand  = isset($_GET['maand']) ? intval($_GET['maand']) : intval(date('m'));
@@ -175,12 +215,30 @@ $totaalUren   = $totaalLessen; // Elke les = 1 uur
                     <?php endif; ?>
                 </div>
 
-                <?php if (!$isVerleden): ?>
                 <div class="les-acties">
-                    <a href="wijzig.php?lesID=<?= $les['lesID'] ?>" class="edit" style="text-decoration:none;display:inline-block;text-align:center;">Wijzig</a>
-                    <a href="annuleer.php?lesID=<?= $les['lesID'] ?>&maand=<?= $maand ?>" class="cancel" style="text-decoration:none;display:inline-block;text-align:center;">Annuleer</a>
+                    <?php if (!$isVerleden): ?>
+                        <a href="wijzig.php?lesID=<?= $les['lesID'] ?>" class="edit" style="text-decoration:none;display:inline-block;text-align:center;">Wijzig</a>
+                        <a href="annuleer.php?lesID=<?= $les['lesID'] ?>&maand=<?= $maand ?>" class="cancel" style="text-decoration:none;display:inline-block;text-align:center;">Annuleer</a>
+                    <?php elseif (empty($les['goedgekeurd'])): ?>
+                        <form method="POST" style="margin:0;">
+                            <input type="hidden" name="goedkeur_lesID" value="<?= (int) $les['lesID'] ?>">
+                            <input type="hidden" name="goedkeur_studentID" value="<?= (int) $les['studentID'] ?>">
+                            <button type="submit" class="btn-goedkeur">
+                                ✅ Goedkeuren<br><small>-2 lesuren</small>
+                            </button>
+                        </form>
+                    <?php else: ?>
+                        <span class="badge-goedgekeurd">✅ Goedgekeurd</span>
+                        <form method="POST" style="margin:0.35rem 0 0;">
+                            <input type="hidden" name="afkeur_lesID" value="<?= (int) $les['lesID'] ?>">
+                            <input type="hidden" name="afkeur_studentID" value="<?= (int) $les['studentID'] ?>">
+                            <button type="submit" class="btn-afkeur"
+                                onclick="return confirm('Goedkeuring intrekken? De les staat weer op nog niet goedgekeurd en 2 lesuren worden teruggezet.');">
+                                ↩ Afkeuren<br><small>+2 lesuren</small>
+                            </button>
+                        </form>
+                    <?php endif; ?>
                 </div>
-                <?php endif; ?>
             </div>
             <?php endforeach; ?>
         <?php endif; ?>

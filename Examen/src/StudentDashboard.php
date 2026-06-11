@@ -101,7 +101,7 @@ $totaalUren   = $totaalLessen * 2; // Elke les duurt 2 uur
         <div class="nav-btn active">Dashboard</div>
         <a href="kalender.php" class="nav-btn" style="text-decoration:none;color:inherit;">Kalender</a>
         <a href="Profiels.php" class="nav-btn" style="text-decoration:none;color:inherit;">Profiel</a>
-        <a href="les_inroosteren.php" class="nav-btn" style="background:#1b2940;color:white;text-decoration:none;">+ Nieuwe les</a>
+        <a href="les_inroosteren.php" class="nav-btn" style="text-decoration:none;color:inherit;">+ Nieuwe les</a>
     </div>
 
     <!-- Stats -->

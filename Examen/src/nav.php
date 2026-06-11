@@ -30,7 +30,6 @@ $navItems = [
     ['label' => 'Rooster',       'href' => 'beschikbaarheid.php',   'rol' => 'instructeur', 'id' => 'beschikbaarheid'],
     ['label' => '+ Les inplannen','href'=> 'les_inroosteren.php',   'rol' => 'instructeur', 'id' => 'les_inroosteren'],
     ['label' => '+ Nieuwe les',  'href' => 'les_inroosteren.php',   'rol' => 'student',     'id' => 'les_inroosteren'],
-    ['label' => '✅ Goedkeuren', 'href' => 'goedkeuren.php',        'rol' => 'instructeur', 'id' => 'goedkeuren'],
 ];
 
 // Pagina → nav-item id koppeling (voor actieve staat)
@@ -42,7 +41,6 @@ $paginaActief = [
     'index.php'                => 'kalender',
     'beschikbaarheid.php'      => 'beschikbaarheid',
     'les_inroosteren.php'      => 'les_inroosteren',
-    'goedkeuren.php'           => 'goedkeuren',
     'wijzig.php'               => 'kalender',
     'annuleer.php'             => 'kalender',
 ];
@@ -70,14 +68,12 @@ $actiefID = $paginaActief[$huidigePagina] ?? '';
         // Sla over als item alleen voor een bepaalde rol is
         if ($item['rol'] !== null && $item['rol'] !== $rol) continue;
 
-        $isActief   = ($item['id'] === $actiefID);
-        $isGoedkeur = ($item['id'] === 'goedkeuren');
-        $klasse     = 'nav-btn' . ($isActief ? ' active' : '');
-        $stijl      = $isGoedkeur ? 'background:#28a745;color:white;' : '';
+        $isActief = ($item['id'] === $actiefID);
+        $klasse   = 'nav-btn' . ($isActief ? ' active' : '');
     ?>
         <a href="<?= $item['href'] ?>"
            class="<?= $klasse ?>"
-           style="text-decoration:none;<?= $stijl ?>">
+           style="text-decoration:none;color:inherit;">
             <?= $item['label'] ?>
         </a>
     <?php endforeach; ?>
