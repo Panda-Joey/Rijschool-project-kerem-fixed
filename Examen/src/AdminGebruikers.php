@@ -137,6 +137,8 @@ if (isset($_POST['bewerken'])) {
     $telefoon      = trim($_POST['telefoon'] ?? '');
     $wachtwoord    = $_POST['wachtwoord'] ?? '';
 
+    $afwezigheid = $_POST['afwezigheid'] ?? 'beschikbaar';
+
     if ($userID <= 0) {
         $message = 'Geen geldige gebruiker geselecteerd.';
         $messageType = 'fout';
@@ -190,7 +192,24 @@ if (isset($_POST['bewerken'])) {
                 $hash = password_hash($wachtwoord, PASSWORD_DEFAULT);
                 $stmt = $conn->prepare("
                     UPDATE instructeurs
-                    SET voornaam=?, tussenvoegsel=?, achternaam=?, email=?, wachtwoord=?, telefoon=?
+                    SET voornaam=?, tussenvoegsel=?, achternaam=?, email=?, wachtwoord=?, telefoon=? , afwezigheid=?
+                    WHERE instructeurID=?
+                ");
+                $stmt->bind_param(
+                    'sssssssi',
+                    $voornaam,
+                    $tussenvoegsel,
+                    $achternaam,
+                    $email,
+                    $hash,
+                    $telefoon,
+                    $afwezigheid,
+                    $userID
+                );
+            } else {
+                $stmt = $conn->prepare("
+                    UPDATE instructeurs
+                    SET voornaam=?, tussenvoegsel=?, achternaam=?, email=?, telefoon=?, afwezigheid=?
                     WHERE instructeurID=?
                 ");
                 $stmt->bind_param(
@@ -199,23 +218,8 @@ if (isset($_POST['bewerken'])) {
                     $tussenvoegsel,
                     $achternaam,
                     $email,
-                    $hash,
                     $telefoon,
-                    $userID
-                );
-            } else {
-                $stmt = $conn->prepare("
-                    UPDATE instructeurs
-                    SET voornaam=?, tussenvoegsel=?, achternaam=?, email=?, telefoon=?
-                    WHERE instructeurID=?
-                ");
-                $stmt->bind_param(
-                    'sssssi',
-                    $voornaam,
-                    $tussenvoegsel,
-                    $achternaam,
-                    $email,
-                    $telefoon,
+                    $afwezigheid,
                     $userID
                 );
             }
@@ -350,7 +354,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                           LEFT JOIN lespakket l ON sl.idlespakket = l.idlespakket
                           WHERE s.status = 'pending'";
             } elseif ($statusFilter === 'instructeurs') {
-                $query = 'SELECT instructeurID, voornaam, tussenvoegsel, achternaam, email, telefoon FROM instructeurs';
+                $query = 'SELECT instructeurID, voornaam, afwezigheid, tussenvoegsel, achternaam, email, telefoon FROM instructeurs';
             } else {
                 $query = "SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, l.naam AS lespakket
                           FROM studenten s
@@ -374,12 +378,20 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                     echo '<td>' . htmlspecialchars($row['telefoon'] ?? '') . '</td>';
                     echo '<td>' . htmlspecialchars($row['lespakket'] ?? '-') . '</td>';
 
-                    if ($huidigeRol === 'instructeur') {
-                        echo '<td>Ja</td>';
-                    } else {
-                        $dbStatus = $row['status'] ?? 'pending';
-                        echo '<td>' . ($dbStatus === 'actief' ? 'Ja' : 'Nee') . '</td>';
-                    }
+                   if ($huidigeRol === 'instructeur') {
+                      $status = $row['afwezigheid'] ?? 'onbekend';
+
+                      $kleur = match ($status) {
+                      'beschikbaar' => 'green',
+                      'niet' => 'red',
+                       default => 'gray'
+                     };
+
+    echo "<td><span style='color:$kleur'>" . ucfirst($status) . "</span></td>";
+} else {
+    $dbStatus = $row['status'] ?? 'pending';
+    echo '<td>' . ($dbStatus === 'actief' ? 'Ja' : 'Nee') . '</td>';
+}
 
                     echo '<td>' . (isset($row['beperking']) && $row['beperking'] == 1 ? 'Ja' : 'Nee') . '</td>';
                     echo '<td>';
@@ -508,6 +520,14 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                 </select>
             </div>
 
+            <div class="modal-form-group" id="edit_afwezigheid_group" style="display:none;">
+             <label for="edit_afwezigheid">Beschikbaarheid:</label>
+             <select name="afwezigheid" id="edit_afwezigheid">
+             <option value="beschikbaar">Beschikbaar</option>
+             <option value="niet">Niet beschikbaar</option>
+              </select>
+            </div>
+
             <div class="modal-form-group">
                 <label>Voornaam:</label>
                 <input type="text" name="voornaam" id="edit_voornaam" required>
@@ -571,6 +591,17 @@ function openEditModal(data) {
     document.getElementById('edit_achternaam').value = data.achternaam;
     document.getElementById('edit_email').value = data.email;
     document.getElementById('edit_telefoon').value = data.telefoon || '';
+
+        if (data.rol === 'instructeur') {
+        document.getElementById('edit_afwezigheid_group').style.display = 'block';
+        document.getElementById('edit_status_group').style.display = 'none';
+
+        document.getElementById('edit_afwezigheid').value =
+            data.afwezigheid || 'beschikbaar';
+    } else {
+        document.getElementById('edit_status_group').style.display = 'block';
+        document.getElementById('edit_afwezigheid_group').style.display = 'none';
+    }
 
     var statusGroup = document.getElementById('edit_status_group');
     var statusSelect = document.getElementById('edit_status');
