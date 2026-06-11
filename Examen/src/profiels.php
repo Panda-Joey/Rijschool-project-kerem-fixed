@@ -33,7 +33,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Validatie: check of verplichte velden niet leeg zijn
     if (empty($voornaam) || empty($achternaam) || empty($email) || empty($telefoon)) {
-        $error_msg = "❌ Vul aanzienlijk alle verplichte velden in.";
+        $error_msg = "Vul aanzienlijk alle verplichte velden in.";
     } else {
         // Basis query opbouwen
         if (!empty($wachtwoord)) {

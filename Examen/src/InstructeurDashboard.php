@@ -60,6 +60,7 @@ foreach ($lessen as $les) {
     }
 }
 
+
 // ── Stats ────────────────────────────────────────────────────────────
 $totaalLessen = count($lessen);
 $totaalUren   = $totaalLessen; // Elke les = 1 uur
@@ -88,6 +89,7 @@ $totaalUren   = $totaalLessen; // Elke les = 1 uur
         <a href="kalender.php" class="nav-btn" style="text-decoration:none;color:inherit;">Kalender</a>
         <a href="beschikbaarheid.php" class="nav-btn" style="text-decoration:none;color:inherit;">Rooster</a>
         <a href="Profieli.php" class="nav-btn" style="text-decoration:none;color:inherit;">Profiel</a>
+        <a href="afwezigheid.php" class="nav-btn" style="text-decoration:none;color:#dc2626;font-weight:bold;"> Meld Afwezig</a>
         <a href="Wagenpark.php" class="nav-btn" style="text-decoration:none;color:inherit;">Wagenpark</a>
     </div>
 
