@@ -133,7 +133,7 @@ foreach ($lessen as $dag => $dagLessen) {
         <?php if ($rol === 'instructeur'): ?>
             <a href="les_inroosteren.php" class="nav-btn">+ Les inplannen</a>
         <?php else: ?>
-            <a href="les_inroosteren.php" class="nav-btn" style="background:#1b2940;color:white;">+ Nieuwe les</a>
+            <a href="les_inroosteren.php" class="nav-btn">+ Nieuwe les</a>
         <?php endif; ?>
     </div>
 
