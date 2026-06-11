@@ -201,39 +201,35 @@ $stmtSt->close();
                 <?php endforeach; ?>
             <?php endif; ?>
         </div>
-        <div class="les-uren-kopen">
-
+    </div>
+    <div class="les-uren-kopen">
     <div class="lek-title">
         <h3>⏱️ Losse lesuren</h3>
         <p>Geen pakket nodig? Koop losse rijlessen wanneer je ze nodig hebt.</p>
     </div>
-
     <div class="lek-content">
         <div class="lek-option">
             <span>1 lesuur</span>
             <strong>€60</strong>
             <a href="koop_uur.php?aantal=1" class="lek-btn">Kopen</a>
         </div>
-
         <div class="lek-option highlight">
             <span>3 lesuren</span>
             <strong>€175</strong>
             <a href="koop_uur.php?aantal=3" class="lek-btn">Meest gekozen</a>
         </div>
-
         <div class="lek-option">
             <span>5 lesuren</span>
             <strong>€290</strong>
             <a href="koop_uur.php?aantal=5" class="lek-btn">Kopen</a>
         </div>
     </div>
-
     <div class="section-divider">Extra opties</div>
 
     <p class="lek-note">
         ⏳ Direct beschikbaar in je account na betaling
     </p>
-
+</div>
 </div>
     </div>
 </body>

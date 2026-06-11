@@ -163,11 +163,11 @@ if (!$student) {
 
             <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
 
-            <!-- <div>
+            <div>
                 <h3 style="margin-top:0;"> Wachtwoord Wijzigen</h3>
                 <label style="display:block; font-weight:bold; margin-bottom:5px;">Nieuw Wachtwoord (Laat leeg om niet te wijzigen)</label>
                 <input type="password" name="wachtwoord" placeholder="Nieuw wachtwoord" style="width:100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px;">
-            </div> -->
+            </div>
 
             <div style="margin-top: 10px;">
                 <button type="submit" style="background: #1b2940; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold;">
