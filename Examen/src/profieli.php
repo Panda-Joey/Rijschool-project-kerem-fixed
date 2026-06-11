@@ -45,11 +45,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
 
         if ($stmt->execute()) {
-            $success_msg = "✅ Je instructeursprofiel is succesvol bijgewerkt!";
+            $success_msg = " Je instructeursprofiel is succesvol bijgewerkt!";
             $_SESSION['naam'] = trim("$voornaam $tussenvoegsel $achternaam");
             $naam = $_SESSION['naam'];
         } else {
-            $error_msg = "❌ Er ging iets mis bij het updaten: " . $conn->error;
+            $error_msg = " Er ging iets mis bij het updaten: " . $conn->error;
         }
         $stmt->close();
     }

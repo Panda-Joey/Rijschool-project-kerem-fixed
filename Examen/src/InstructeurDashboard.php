@@ -60,9 +60,10 @@ foreach ($lessen as $les) {
     }
 }
 
+
 // ── Stats ────────────────────────────────────────────────────────────
 $totaalLessen = count($lessen);
-$totaalUren   = $totaalLessen * 2;
+$totaalUren   = $totaalLessen; // Elke les = 1 uur
 ?>
 <!DOCTYPE html>
 <html lang="nl">
@@ -80,7 +81,7 @@ $totaalUren   = $totaalLessen * 2;
             <h2>👋 <?= htmlspecialchars($naam) ?> <span class="rol-badge badge-instructeur">🎓 Instructeur</span></h2>
             <span>Rijschool Dashboard</span>
         </div>
-        <a href="logout.php" class="logout-btn">Uitloggen →</a>
+        <a href="../logout.php" class="logout-btn">Uitloggen →</a>
     </div>
 
     <div class="top-buttons">
@@ -88,8 +89,8 @@ $totaalUren   = $totaalLessen * 2;
         <a href="kalender.php" class="nav-btn" style="text-decoration:none;color:inherit;">Kalender</a>
         <a href="beschikbaarheid.php" class="nav-btn" style="text-decoration:none;color:inherit;">Rooster</a>
         <a href="Profieli.php" class="nav-btn" style="text-decoration:none;color:inherit;">Profiel</a>
+        <a href="afwezigheid.php" class="nav-btn" style="text-decoration:none;color:#dc2626;font-weight:bold;"> Meld Afwezig</a>
         <a href="Wagenpark.php" class="nav-btn" style="text-decoration:none;color:inherit;">Wagenpark</a>
-        <a href="les_inroosteren.php" class="nav-btn" style="background:#1b2940;color:white;text-decoration:none;">+ Les inplannen</a>
     </div>
 
     <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr);">
