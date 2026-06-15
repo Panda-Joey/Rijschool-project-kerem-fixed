@@ -120,7 +120,7 @@ $totaalUren   = $totaalLessen * 2; // Elke les duurt 2 uur
         <div class="nav-btn active">Dashboard</div>
         <a href="kalender.php" class="nav-btn" style="text-decoration:none;color:inherit;">Kalender</a>
         <a href="Profiels.php" class="nav-btn" style="text-decoration:none;color:inherit;">Profiel</a>
-        <a href="les_inroosteren.php" class="nav-btn" style="background:#1b2940;color:white;text-decoration:none;">+ Nieuwe les</a>
+        <a href="les_inroosteren.php" class="nav-btn" style="text-decoration:none;color:inherit;">+ Nieuwe les</a>
     </div>
 
     <!-- Stats -->
@@ -323,6 +323,34 @@ $totaalUren   = $totaalLessen * 2; // Elke les duurt 2 uur
             <?php endforeach; ?>
         <?php endif; ?>
     </div>
+    <div class="les-uren-kopen">
+    <div class="lek-title">
+        <h3>⏱️ Losse lesuren</h3>
+        <p>Geen pakket nodig? Koop losse rijlessen wanneer je ze nodig hebt.</p>
+    </div>
+    <div class="lek-content">
+        <div class="lek-option">
+            <span>1 lesuur</span>
+            <strong>€60</strong>
+            <a href="koop_uur.php?aantal=1" class="lek-btn">Kopen</a>
+        </div>
+        <div class="lek-option highlight">
+            <span>3 lesuren</span>
+            <strong>€175</strong>
+            <a href="koop_uur.php?aantal=3" class="lek-btn">Meest gekozen</a>
+        </div>
+        <div class="lek-option">
+            <span>5 lesuren</span>
+            <strong>€290</strong>
+            <a href="koop_uur.php?aantal=5" class="lek-btn">Kopen</a>
+        </div>
+    </div>
+    <div class="section-divider">Extra opties</div>
+
+    <p class="lek-note">
+        ⏳ Direct beschikbaar in je account na betaling
+    </p>
+</div>
 
 </div>
 </body>

@@ -78,6 +78,8 @@ CREATE TABLE `lessen` (
   `instructeurID` INT(11) NOT NULL,
   `autoID` INT(11) NOT NULL,
   `vervallen` TINYINT(1) NOT NULL DEFAULT 0,
+  `goedgekeurd` TINYINT(1) NOT NULL DEFAULT 0,
+  `goedgekeurd_op` DATETIME NULL DEFAULT NULL,
   `redenWijzig` VARCHAR(300) NULL DEFAULT NULL,
   `redenVervalt` VARCHAR(300) NULL DEFAULT NULL,
   PRIMARY KEY (`lesID`),
