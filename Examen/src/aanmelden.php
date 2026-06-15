@@ -66,14 +66,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt->execute()) {
             $studentID = $conn->insert_id;
 
+            /*
             $sql2 = "INSERT INTO student_lespakket (studentID, idlespakket, overige_uren)
                 SELECT ?, idlespakket, uren FROM lespakket WHERE idlespakket = ?";
             $stmt2 = $conn->prepare($sql2);
             $stmt2->bind_param("ii", $studentID, $lespakketID);
             $stmt2->execute();
-            $stmt2->close();
+            $stmt2->close();*/
 
-            /*
+            
             $sql2 = "
             INSERT INTO student_lespakket (studentID, idlespakket, overige_uren, bedrag)
             SELECT ?, idlespakket, uren, prijs
@@ -83,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt2 = $conn->prepare($sql2);
             $stmt2->bind_param("ii", $studentID, $lespakketID);
             $stmt2->execute();
-            $stmt2->close(); */
+            $stmt2->close(); 
 
             $message = 'Je aanmelding is ontvangen. De rijschoolhouder moet je account eerst activeren.';
             $messageType = 'success';

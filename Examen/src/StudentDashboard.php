@@ -129,7 +129,7 @@ $totaalUren   = $totaalLessen * 2; // Elke les duurt 2 uur
             $stmtPakket->close();
         ?>
         <div class="stat-card">
-            <div class="getal"><?= $st['lesUren'] ?? '—' ?></div>
+            <div class="getal"><?= $st['overige_uren'] ?? '—' ?></div>
             <div class="label">Totaal lesuren pakket</div>
         </div>
         <div class="stat-card">
