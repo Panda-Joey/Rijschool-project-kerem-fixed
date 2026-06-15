@@ -288,16 +288,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $fout = "De instructeur heeft al het maximale aantal lessen op $datum.";
 
                 } else {
-                    /* Alles klopt: les aanmaken */
-                    $conn->query("
-                        INSERT INTO lessen
-                            (lesDatum, lestijd, ophaalLocatie, doel, onderwerpen, studentID, instructeurID, autoID, vervallen)
-                        VALUES
-                            ('$datum', '$tijd:00', '$ophaal', '$doel', '$onderwerpen', $studentID, $instrID, $autoID, 0)
-                    ");
-                    $door   = ($rol === 'instructeur') ? "door jou ingepland" : "aangevraagd";
-                    $succes = "Les $door op <strong>$datum om $tijd</strong>! <a href='" . htmlspecialchars(srcDashboardPath(), ENT_QUOTES, 'UTF-8') . "'>Naar dashboard →</a>";
-                }
+    /* Alles klopt: les aanmaken via een veilige prepared statement */
+    $stmt = $conn->prepare("
+        INSERT INTO lessen 
+            (lesDatum, lestijd, ophaalLocatie, doel, onderwerpen, studentID, instructeurID, autoID, vervallen) 
+        VALUES 
+            (?, ?, ?, ?, ?, ?, ?, ?, 0)
+    ");
+
+    if ($stmt) {
+        $tijdFormatted = $tijd . ':00';
+        
+            // Kopppelen van de variabelen aan de vraagtekens (?)
+            // s = string (tekst/datum), i = integer (getal)
+            $stmt->bind_param("sssssiii", $datum, $tijdFormatted, $ophaal, $doel, $onderwerpen, $studentID, $instrID, $autoID);
+            
+            try {
+                $stmt->execute();
+                
+                $door   = ($rol === 'instructeur') ? "door jou ingepland" : "aangevraagd";
+                $succes = "Les $door op <strong>$datum om $tijd</strong>! <a href='" . htmlspecialchars(srcDashboardPath(), ENT_QUOTES, 'UTF-8') . "'>Naar dashboard →</a>";
+            } catch (mysqli_sql_exception $e) {
+                // Hiermee vang je de Foreign Key crash op en toon je een nette foutmelding aan de gebruiker
+                $fout = "Fout bij opslaan: Het studentID ($studentID) of instructeurID ($instrID) bestaat niet in de database. Controleer of je correct bent ingelogd.";
+            }
+            
+            $stmt->close();
+        } else {
+            $fout = "Databasefout: Kon de database-query niet voorbereiden.";
+        }
+    }
             }
         }
     }
