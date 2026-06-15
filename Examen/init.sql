@@ -34,6 +34,7 @@ CREATE TABLE `instructeurs` (
   `omschrijving` VARCHAR(255) NULL DEFAULT NULL,
   `rol` ENUM('admin', 'instructeur') NOT NULL DEFAULT 'instructeur',
   `transmissie` ENUM('schakel', 'automaat', 'beide') NOT NULL DEFAULT 'schakel',
+  `afwezigheid` ENUM('beschikbaar', 'niet') NOT NULL DEFAULT 'beschikbaar',
   PRIMARY KEY (`instructeurID`)
 ) ENGINE=InnoDB;
 
@@ -73,6 +74,8 @@ CREATE TABLE `studenten` (
   `geboortedatum` DATE NOT NULL,
   `status` ENUM('pending', 'actief', 'geslaagd') NOT NULL,
   `transmissie` ENUM('schakel', 'automaat') NOT NULL DEFAULT 'schakel',
+  `poging` INT(11) NULL DEFAULT NULL,
+  `geslaagd` TINYINT(1) NULL DEFAULT NULL,
   PRIMARY KEY (`studentID`),
   UNIQUE INDEX `email_UNIQUE` (`email`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3;
@@ -89,8 +92,8 @@ CREATE TABLE `lessen` (
   `instructeurID` INT(11) NOT NULL,
   `autoID` INT(11) NOT NULL,
   `vervallen` TINYINT(1) NOT NULL DEFAULT 0,
-  `goedgekeurd` TINYINT(1) NOT NULL DEFAULT 0,
-  `goedgekeurd_op` DATETIME NULL DEFAULT NULL,
+  `goedgekeurd` TINYINT(1) NULL DEFAULT NULL,
+  `goedgekeurd_op` TIMESTAMP NULL DEFAULT NULL,
   `redenWijzig` VARCHAR(300) NULL DEFAULT NULL,
   `redenVervalt` VARCHAR(300) NULL DEFAULT NULL,
   PRIMARY KEY (`lesID`),
@@ -116,6 +119,7 @@ CREATE TABLE `student_lespakket` (
   `studentID` INT(11) NULL,
   `idlespakket` INT NULL,
   `overige_uren` INT NULL,
+  `bedrag` DECIMAL(6,2) NULL DEFAULT NULL,
   INDEX `fk_studenten_has_lespakket_lespakket1_idx` (`idlespakket`),
   INDEX `fk_studenten_has_lespakket_studenten1_idx` (`studentID`),
   CONSTRAINT `fk_studenten_has_lespakket_studenten1` FOREIGN KEY (`studentID`) REFERENCES `studenten` (`studentID`),
@@ -131,6 +135,29 @@ CREATE TABLE `studenten_has_instructeurs` (
   INDEX `fk_studenten_has_instructeurs_studenten1_idx` (`studentID`),
   CONSTRAINT `fk_studenten_has_instructeurs_studenten1` FOREIGN KEY (`studentID`) REFERENCES `studenten` (`studentID`),
   CONSTRAINT `fk_studenten_has_instructeurs_instructeurs1` FOREIGN KEY (`instructeurID`) REFERENCES `instructeurs` (`instructeurID`)
+) ENGINE=InnoDB;
+
+DROP TABLE IF EXISTS `meldingen`;
+CREATE TABLE `meldingen` (
+  `meldingID` INT(11) NOT NULL AUTO_INCREMENT,
+  `titel` VARCHAR(100) NOT NULL,
+  `bericht` VARCHAR(500) NOT NULL,
+  `ontvanger_type` ENUM('iedereen', 'alle_studenten', 'alle_instructeurs', 'student', 'instructeur') NOT NULL,
+  `ontvanger_id` INT(11) NULL DEFAULT NULL,
+  `datum_gemaakt` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`meldingID`)
+) ENGINE=InnoDB;
+
+DROP TABLE IF EXISTS `bijkopen`;
+CREATE TABLE `bijkopen` (
+  `idbijkopen` INT(11) NOT NULL AUTO_INCREMENT,
+  `naam` VARCHAR(255) NOT NULL,
+  `uren` INT(11) NOT NULL,
+  `prijs` DECIMAL(6,2) NOT NULL,
+  `studentID` INT(11) NOT NULL,
+  PRIMARY KEY (`idbijkopen`),
+  INDEX `fk_bijkopen_studenten1_idx` (`studentID`),
+  CONSTRAINT `fk_bijkopen_studenten1` FOREIGN KEY (`studentID`) REFERENCES `studenten` (`studentID`)
 ) ENGINE=InnoDB;
 
 SET SQL_MODE=@OLD_SQL_MODE;
@@ -181,6 +208,11 @@ INSERT INTO `studenten_has_instructeurs` (`studentID`, `instructeurID`) VALUES
 (1, 10),
 (2, 11),
 (3, 11);
+
+INSERT INTO `meldingen` (`titel`, `bericht`, `ontvanger_type`, `ontvanger_id`) VALUES
+('Welkom!', 'Welkom op het rijschoolportaal. Bekijk je lessen en plan nieuwe in.', 'alle_studenten', NULL),
+('Team update', 'Controleer regelmatig je rooster en beschikbaarheid.', 'alle_instructeurs', NULL),
+('Algemene mededeling', 'De rijschool is gesloten op feestdagen.', 'iedereen', NULL);
 
 INSERT INTO `lessen` (`lesDatum`, `lestijd`, `ophaalLocatie`, `doel`, `onderwerpen`, `studentID`, `instructeurID`, `autoID`, `vervallen`, `redenWijzig`, `redenVervalt`) VALUES
 ('2026-06-10', '09:00:00', 'Station Utrecht Centraal', 'Koppeling beheersen', 'Wegrijden, opschakelen, stoppen', 1, 10, 1, 0, NULL, NULL),
