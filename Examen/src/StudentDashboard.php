@@ -67,6 +67,25 @@ foreach ($lessen as $les) {
     if ($les['lesDatum'] >= $vandaag) { $volgendeLes = $les; break; }
 }
 
+$doelgroepRol = ($rol === 'instructeur') ? 'alle_instructeurs' : 'alle_studenten';
+
+$stmtMededelingen = $conn->prepare("
+    SELECT titel, bericht, datum_gemaakt 
+    FROM meldingen 
+    WHERE ontvanger_type = ? OR ontvanger_type = 'iedereen'
+    ORDER BY datum_gemaakt DESC 
+    LIMIT 5
+");
+$stmtMededelingen->bind_param("s", $doelgroepRol);
+$stmtMededelingen->execute();
+$resMededelingen = $stmtMededelingen->get_result();
+
+$mededelingen = [];
+while ($row = $resMededelingen->fetch_assoc()) {
+    $mededelingen[] = $row;
+}
+$stmtMededelingen->close();
+
 // ── Stats ────────────────────────────────────────────────────
 $totaalLessen = count($lessen);
 $totaalUren   = $totaalLessen * 2; // Elke les duurt 2 uur
@@ -138,6 +157,46 @@ $totaalUren   = $totaalLessen * 2; // Elke les duurt 2 uur
         </div>
         <?php endif; ?>
     </div>
+
+    <div class="mededelingen-container" style="box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); border-radius: 8px; overflow: hidden; margin-bottom: 25px; border: 1px solid #1e293b;">
+    
+    <div style="background-color: #1e293b; color: #ffffff; padding: 15px 20px; display: flex; align-items: center; gap: 10px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ffffff;">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <h3 style="margin: 0; font-size: 16px; font-weight: bold; letter-spacing: 0.5px; font-family: sans-serif;">Actuele Mededelingen</h3>
+    </div>
+
+    <div style="background-color: #ffffff; padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+        <?php if (empty($mededelingen)): ?>
+            <p style="color: #6b7280; font-style: italic; margin: 0; font-family: sans-serif;">Er zijn momenteel geen actuele mededelingen.</p>
+        <?php else: ?>
+            <?php foreach ($mededelingen as $item): 
+                // Datum mooi formatteren naar NL stijl (bijv: 12 mei 2026)
+                $datumMaanden = [1=>"januari", 2=>"februari", 3=>"maart", 4=>"april", 5=>"mei", 6=>"juni", 7=>"juli", 8=>"augustus", 9=>"september", 10=>"oktober", 11=>"november", 12=>"december"];
+                $time = strtotime($item['datum_gemaakt']);
+                $dag = date('j', $time);
+                $maandNummer = intval(date('n', $time));
+                $jaarNummer = date('Y', $time);
+                $geformateerdeDatum = $dag . " " . $datumMaanden[$maandNummer] . " " . $jaarNummer;
+            ?>
+                <div style="background-color: #f0f7ff; border-left: 4px solid #3b82f6; padding: 15px 20px; border-radius: 0 4px 4px 0; font-family: sans-serif;">
+                    <span style="color: #93c5fd; font-size: 12px; display: block; margin-bottom: 5px; font-weight: 500;">
+                        <?= $geformateerdeDatum ?>
+                    </span>
+                    <strong style="color: #1e3a8a; font-size: 15px; display: block; margin-bottom: 2px;">
+                        <?= htmlspecialchars($item['titel']) ?>
+                    </strong>
+                    <p style="margin: 0; color: #1e293b; font-size: 14px; line-height: 1.5; white-space: pre-line;">
+                        <?= htmlspecialchars($item['bericht']) ?>
+                    </p>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
+</div>
 
     <!-- Volgende les -->
     <div class="volgende-les">
