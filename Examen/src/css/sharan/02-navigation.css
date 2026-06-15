@@ -3,15 +3,20 @@
    Gebruikt op: alle pagina's als navigatiebalk.
    Op mobiel: 2 kolommen grid. Op tablet+: flex rij.
    ================================================================ */
+.dash-header,
 .top-buttons {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    width: 100%;
+}
+
+.top-buttons {
+    display: flex;
+    flex-wrap: wrap;
     gap: 6px;
     margin-bottom: 10px;
 }
 
-/* Elke navigatieknop, ook als <a> of <div> */
-.nav-btn {
+/* Elke navigatieknop — altijd <a> voor identieke afmetingen */
+a.nav-btn {
     padding: 12px 6px;
     background: white;
     border: 2px solid #1b2940;
@@ -21,15 +26,30 @@
     font-size: 12px;
     text-decoration: none;
     color: inherit;
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     touch-action: manipulation;
+    box-sizing: border-box;
+    flex: 1 1 calc(50% - 3px);
+    min-width: 0;
+    min-height: 44px;
+    line-height: 1.2;
+}
+
+a.nav-btn--alert {
+    color: #dc2626;
 }
 
 /* Actieve of hover staat van navigatieknop */
-.nav-btn.active,
-.nav-btn:hover {
+a.nav-btn.active,
+a.nav-btn:hover {
     background: #1b2940;
     color: white;
+}
+
+a.nav-btn.active {
+    cursor: default;
 }
 
 

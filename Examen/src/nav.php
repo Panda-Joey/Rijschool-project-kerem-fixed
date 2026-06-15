@@ -46,12 +46,18 @@ $paginaActief = [
 ];
 
 $actiefID = $paginaActief[$huidigePagina] ?? '';
+
+$headerTitel = match ($huidigePagina) {
+    'wijzig.php' => 'Les wijzigen',
+    default      => 'Rijschool',
+};
+$headerIcoon = $huidigePagina === 'wijzig.php' ? '✏️' : '🚗';
 ?>
 
 <!-- ── HEADER ───────────────────────────────────────────────── -->
 <div class="dash-header">
     <div>
-        <h2>🚗 Rijschool</h2>
+        <h2><?= $headerIcoon ?> <?= htmlspecialchars($headerTitel) ?></h2>
         <span>
             <?= htmlspecialchars($naam) ?> —
             <span class="rol-badge <?= $rol === 'instructeur' ? 'badge-instructeur' : 'badge-student' ?>">

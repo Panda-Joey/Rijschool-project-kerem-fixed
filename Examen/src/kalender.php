@@ -97,45 +97,15 @@ foreach ($lessen as $dag => $dagLessen) {
 <body>
 <div class="container">
 
-    <!-- Zelfde headerstijl als dashboard -->
-    <div class="dash-header">
-        <div>
-            <h2>📅 Kalender</h2>
-            <span><?= htmlspecialchars($naam) ?> —
-                <span class="rol-badge <?= $rol === 'instructeur' ? 'badge-instructeur' : 'badge-student' ?>">
-                    <?= $rol === 'instructeur' ? '🎓 Instructeur' : '🚗 Student' ?>
-                </span>
-            </span>
-        </div>
-        <a href="../logout.php" class="logout-btn">Uitloggen →</a>
-    </div>
-
-    <!-- Navigatie -->
-   <div class="top-buttons">
-        <?php if ($rol === 'instructeur'): ?>
-            <a href="Instructeurdashboard.php" class="nav-btn">Dashboard</a>
-        <?php else: ?>
-            <a href="Studentdashboard.php" class="nav-btn">Dashboard</a>
-        <?php endif; ?>
-        
-        <div class="nav-btn active">Kalender</div>
-        
-        <?php if ($rol === 'instructeur'): ?>
-            <a href="beschikbaarheid.php" class="nav-btn">Rooster</a>
-        <?php endif; ?>
-
-        <?php if ($rol === 'instructeur'): ?>
-            <a href="Profieli.php" class="nav-btn">Profiel</a>
-        <?php else: ?>
-            <a href="Profiels.php" class="nav-btn">Profiel</a>
-        <?php endif; ?>
-        
-        <?php if ($rol === 'instructeur'): ?>
-            <a href="les_inroosteren.php" class="nav-btn">+ Les inplannen</a>
-        <?php else: ?>
-            <a href="les_inroosteren.php" class="nav-btn">+ Nieuwe les</a>
-        <?php endif; ?>
-    </div>
+    <?php
+    $navActief = 'kalender';
+    $paginaLabel = 'Kalender';
+    if ($rol === 'instructeur') {
+        require_once 'instructeur_nav.php';
+    } else {
+        require_once 'student_nav.php';
+    }
+    ?>
 
     <!-- Kalender -->
     <div class="calendar">

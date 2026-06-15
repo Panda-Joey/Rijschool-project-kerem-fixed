@@ -13,6 +13,7 @@
 
 require_once dirname(__DIR__) . '/includes/database.php';
 require_once dirname(__DIR__) . '/includes/autos.php';
+require_once dirname(__DIR__) . '/includes/lesvoorkeur.php';
 
 $conn = getDbConnection();
 
@@ -39,26 +40,74 @@ $doelen = [
    DATA OPHALEN
    ============================================================ */
 
-/* Alle auto's (voor de auto-dropdown in het formulier) */
-$autos = [];
 ensureAutosAvailabilityColumns($conn);
-$r = $conn->query("SELECT * FROM Autos ORDER BY beschikbaar DESC, merk, type");
-while ($row = $r->fetch_assoc()) {
-    $autos[] = $row;
-}
+ensureLesvoorkeurSchema($conn);
 
-/* Studenten — alleen nodig als instructeur een les inplant */
-$studenten = [];
-if ($rol === 'instructeur') {
-    $r = $conn->query("SELECT studentID, voornaam, tussenvoegsel, achternaam FROM studenten ORDER BY achternaam");
-    while ($rij = $r->fetch_assoc()) $studenten[] = $rij;
-}
+$gekoppeldeInstructeur = null;
+$transmissie           = 'schakel';
+$transmissieInstr      = 'schakel';
+$instrAuto             = null;
+$studenten             = [];
+$autos                 = [];
 
-/* Instructeurs — alleen nodig als student een les aanvraagt */
-$instructeurs = [];
 if ($rol === 'student') {
-    $r = $conn->query("SELECT instructeurID, voornaam, achternaam FROM instructeurs ORDER BY voornaam");
-    while ($rij = $r->fetch_assoc()) $instructeurs[] = $rij;
+    $r = $conn->query("SELECT transmissie FROM studenten WHERE studentID = $userID");
+    if ($r && $rij = $r->fetch_assoc()) {
+        $transmissie = $rij['transmissie'];
+    }
+
+    $r = $conn->query("
+        SELECT i.instructeurID, i.voornaam, i.achternaam, i.omschrijving, i.transmissie,
+               a.autoID, a.merk, a.type, a.kenteken, a.transmissie AS autoTransmissie,
+               a.beschikbaar, a.statusReden
+        FROM studenten_has_instructeurs shi
+        JOIN instructeurs i ON shi.instructeurID = i.instructeurID
+        LEFT JOIN instructeur_auto ia ON i.instructeurID = ia.instructeurID
+        LEFT JOIN Autos a ON ia.autoID = a.autoID
+        WHERE shi.studentID = $userID
+        LIMIT 1
+    ");
+    if ($r && $r->num_rows > 0) {
+        $gekoppeldeInstructeur = $r->fetch_assoc();
+    }
+}
+
+if ($rol === 'instructeur') {
+    $r = $conn->query("SELECT transmissie FROM instructeurs WHERE instructeurID = $userID");
+    if ($r && $rij = $r->fetch_assoc()) {
+        $transmissieInstr = $rij['transmissie'];
+    }
+    $transmissie = $transmissieInstr;
+
+    $r = $conn->query("
+        SELECT a.* FROM instructeur_auto ia
+        JOIN Autos a ON ia.autoID = a.autoID
+        WHERE ia.instructeurID = $userID
+        LIMIT 1
+    ");
+    if ($r && $r->num_rows > 0) {
+        $instrAuto = $r->fetch_assoc();
+    }
+
+    $r = $conn->query("
+        SELECT s.studentID, s.voornaam, s.tussenvoegsel, s.achternaam, s.transmissie
+        FROM studenten_has_instructeurs shi
+        JOIN studenten s ON shi.studentID = s.studentID
+        WHERE shi.instructeurID = $userID AND s.status = 'actief'
+        ORDER BY s.achternaam
+    ");
+    while ($rij = $r->fetch_assoc()) {
+        $studenten[] = $rij;
+    }
+}
+
+if ($rol === 'instructeur' && $instrAuto) {
+    $autos[] = $instrAuto;
+} elseif ($rol === 'instructeur') {
+    $r = $conn->query("SELECT * FROM Autos ORDER BY beschikbaar DESC, merk, type");
+    while ($rij = $r->fetch_assoc()) {
+        $autos[] = $rij;
+    }
 }
 
 /* Gekozen datum: uit URL (?datum=...) of POST of morgen als standaard */
@@ -135,16 +184,19 @@ function bouwSlotsVoorInstructeur(mysqli $conn, int $iID, string $datum, string 
 $instrData = [];
 
 if ($rol === 'instructeur') {
-    /* Instructeur ziet alleen zijn eigen slots */
     $instrData[$userID] = bouwSlotsVoorInstructeur($conn, $userID, $gekozenDatum, $dagNaam);
-    $instrData[$userID]['naam'] = $naam;
-} else {
-    /* Student ziet slots van alle instructeurs */
-    foreach ($instructeurs as $instr) {
-        $iID = $instr['instructeurID'];
-        $instrData[$iID] = bouwSlotsVoorInstructeur($conn, $iID, $gekozenDatum, $dagNaam);
-        $instrData[$iID]['naam'] = $instr['voornaam'] . ' ' . $instr['achternaam'];
-    }
+    $instrData[$userID]['naam']        = $naam;
+    $instrData[$userID]['transmissie'] = $transmissieInstr;
+} elseif ($gekoppeldeInstructeur) {
+    $iID = (int) $gekoppeldeInstructeur['instructeurID'];
+    $instrData[$iID] = bouwSlotsVoorInstructeur($conn, $iID, $gekozenDatum, $dagNaam);
+    $instrData[$iID]['naam']        = $gekoppeldeInstructeur['voornaam'] . ' ' . $gekoppeldeInstructeur['achternaam'];
+    $instrData[$iID]['transmissie'] = $gekoppeldeInstructeur['transmissie'];
+    $instrData[$iID]['omschrijving']= $gekoppeldeInstructeur['omschrijving'] ?? '';
+    $instrData[$iID]['autoNaam']    = !empty($gekoppeldeInstructeur['autoID'])
+        ? $gekoppeldeInstructeur['merk'] . ' ' . $gekoppeldeInstructeur['type'] . ' (' . $gekoppeldeInstructeur['kenteken'] . ')'
+        : '';
+    $instrData[$iID]['autoID']      = $gekoppeldeInstructeur['autoID'] ?? null;
 }
 
 
@@ -169,6 +221,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($studentVerplichteVelden || ($rol === 'instructeur' && $instructeurVerplichteVelden)) {
         $fout = "Vul alle verplichte velden in.";
+    } elseif ($rol === 'instructeur' && $instrAuto && $autoID !== (int) $instrAuto['autoID']) {
+        $fout = 'Je mag alleen les geven in je vaste lesauto.';
     } elseif ($rol === 'instructeur' && $autoID) {
         $autoStmt = $conn->prepare("SELECT beschikbaar, statusReden FROM Autos WHERE autoID = ?");
         $autoStmt->bind_param("i", $autoID);
@@ -260,24 +314,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 <div class="container">
 
-    <!-- ── HEADER ─────────────────────────────────────────────── -->
-    <div class="dash-header">
-        <div>
-            <h2><?= $rol === 'instructeur' ? '📋 Les inplannen voor leerling' : '📅 Nieuwe les aanvragen' ?></h2>
-            <span><?= htmlspecialchars($naam) ?></span>
-        </div>
-        <a href="logout.php" class="logout-btn">Uitloggen →</a>
-    </div>
-
-    <!-- ── NAVIGATIE ──────────────────────────────────────────── -->
-    <div class="top-buttons">
-        <a href="<?= htmlspecialchars(srcDashboardPath(), ENT_QUOTES, 'UTF-8') ?>" class="nav-btn">Dashboard</a>
-        <a href="index.php"           class="nav-btn">Kalender</a>
-        <a href="beschikbaarheid.php" class="nav-btn">Rooster</a>
-        <div                          class="nav-btn active">
-            <?= $rol === 'instructeur' ? '+ Les inplannen' : '+ Nieuwe les' ?>
-        </div>
-    </div>
+    <?php
+    if ($rol === 'instructeur') {
+        $navActief = '';
+        $paginaLabel = 'Les inplannen';
+        require_once 'instructeur_nav.php';
+    } else {
+        $navActief = 'les_inroosteren';
+        $paginaLabel = 'Nieuwe les aanvragen';
+        require_once 'student_nav.php';
+    }
+    ?>
 
     <!-- ── FEEDBACK ───────────────────────────────────────────── -->
     <?php if ($succes): ?>
@@ -382,67 +429,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <!-- ── STAP 2+3 (STUDENT-MODUS): INSTRUCTEUR + TIJDSLOT ── -->
         <?php elseif ($rol === 'student'): ?>
         <div style="margin-bottom:12px;">
-            <div style="font-size:12px;color:#555;margin-bottom:8px;">
-                Beschikbare instructeurs op <strong><?= $dagNaam ?></strong>:
-            </div>
-
-            <?php if (empty($instructeurs)): ?>
-                <div class="geen-lessen">Geen instructeurs beschikbaar.</div>
-
-            <?php else: ?>
-                <div class="instr-kaarten">
-                    <?php foreach ($instructeurs as $instr):
-                        $iID  = $instr['instructeurID'];
-                        $data = $instrData[$iID];
-                        $vol  = !$data['beschikbaar'] || $data['nogVrij'] <= 0;
-                    ?>
-                    <div class="instr-kaart <?= $vol ? 'vol' : '' ?>" id="instrKaart_<?= $iID ?>">
-
-                        <!-- Naam + status -->
-                        <div class="instr-naam">
-                            🎓 <?= htmlspecialchars($data['naam']) ?>
-                            <?php if (!$data['beschikbaar']): ?>
-                                <span style="color:#999;font-size:10px;"> — niet beschikbaar op <?= $dagNaam ?></span>
-                            <?php elseif ($data['nogVrij'] <= 0): ?>
-                                <span style="color:#dc3545;font-size:10px;"> — VOL</span>
-                            <?php endif; ?>
-                        </div>
-
-                        <?php if ($data['beschikbaar'] && !$vol): ?>
-
-                            <!-- Beschikbaarheid info -->
-                            <div class="instr-meta">
-                                ⏰ <?= $data['begin'] ?> – <?= $data['eind'] ?>
-                                &nbsp;·&nbsp; Nog <?= $data['nogVrij'] ?> plek(ken) vrij
-                                &nbsp;·&nbsp; Elke les = 2 uur
-                            </div>
-
-                            <!-- Gekleurde blokjes indicator -->
-                            <div class="plek-balk">
-                                <?php for ($p = 1; $p <= $data['maxLessen']; $p++): ?>
-                                    <div class="plek-blok <?= $p <= ($data['maxLessen'] - $data['nogVrij']) ? 'bezet' : 'vrij' ?>"></div>
-                                <?php endfor; ?>
-                            </div>
-
-                            <!-- Tijdslot knoppen -->
-                            <div style="font-size:11px;color:#555;margin:8px 0 4px;">Kies een tijdstip:</div>
-                            <div class="slot-knoppen" id="slots_<?= $iID ?>">
-                                <?php foreach ($data['slots'] as $slot): ?>
-                                    <button
-                                        type="button"
-                                        class="slot-knop <?= $slot['bezet'] ? 'bezet' : '' ?>"
-                                        <?= $slot['bezet'] ? 'disabled' : '' ?>
-                                        onclick="kiesTijdslotStudent(<?= $iID ?>, '<?= htmlspecialchars($data['naam']) ?>', '<?= $slot['tijd'] ?>', '<?= $slot['eind'] ?>')"
-                                    ><?= $slot['tijd'] ?>–<?= $slot['eind'] ?></button>
-                                <?php endforeach; ?>
-                            </div>
-
+            <?php if (!$gekoppeldeInstructeur): ?>
+                <div class="geen-lessen">Je hebt nog geen vaste instructeur. Neem contact op met de rijschool.</div>
+            <?php else:
+                $iID  = (int) $gekoppeldeInstructeur['instructeurID'];
+                $data = $instrData[$iID] ?? ['beschikbaar' => false, 'slots' => [], 'nogVrij' => 0];
+                $vol  = empty($data['beschikbaar']) || ($data['nogVrij'] ?? 0) <= 0;
+                $tKleur = $transmissie === 'automaat' ? '#3b82f6' : '#1b2940';
+            ?>
+                <div style="font-size:12px;color:#555;margin-bottom:8px;">
+                    Jouw instructeur op <strong><?= $dagNaam ?></strong>
+                    <span style="margin-left:8px;padding:2px 8px;background:<?= $tKleur ?>;color:white;font-size:10px;border-radius:4px;">
+                        <?= lesvoorkeurLabel($transmissie) ?>
+                    </span>
+                </div>
+                <div class="instr-kaart <?= $vol ? 'vol' : '' ?>" id="instrKaart_<?= $iID ?>">
+                    <div class="instr-naam">
+                        👤 <?= htmlspecialchars($data['naam'] ?? '') ?>
+                        <?php if (empty($data['beschikbaar'])): ?>
+                            <span style="color:#999;font-size:10px;"> – niet beschikbaar op <?= $dagNaam ?></span>
+                        <?php elseif (($data['nogVrij'] ?? 0) <= 0): ?>
+                            <span style="color:#dc3545;font-size:10px;"> – VOL</span>
                         <?php endif; ?>
                     </div>
-                    <?php endforeach; ?>
+                    <?php if (!empty($gekoppeldeInstructeur['omschrijving'])): ?>
+                        <div class="instr-omschr"><?= htmlspecialchars($gekoppeldeInstructeur['omschrijving']) ?></div>
+                    <?php endif; ?>
+                    <?php if (!empty($data['autoNaam'])): ?>
+                        <div class="instr-meta">🚗 Lesauto: <?= htmlspecialchars($data['autoNaam']) ?></div>
+                    <?php endif; ?>
+                    <?php if (!empty($data['beschikbaar']) && !$vol): ?>
+                        <div class="instr-meta">
+                            🕐 <?= $data['begin'] ?> – <?= $data['eind'] ?>
+                            &nbsp;·&nbsp; Nog <?= $data['nogVrij'] ?> plek(ken) vrij
+                        </div>
+                        <div class="slot-knoppen" id="slots_<?= $iID ?>">
+                            <?php foreach ($data['slots'] as $slot): ?>
+                                <button type="button" class="slot-knop <?= $slot['bezet'] ? 'bezet' : '' ?>"
+                                    <?= $slot['bezet'] ? 'disabled' : '' ?>
+                                    onclick="kiesTijdslotStudent(<?= $iID ?>, '<?= htmlspecialchars($data['naam'] ?? '') ?>', '<?= $slot['tijd'] ?>', '<?= $slot['eind'] ?>')"
+                                ><?= $slot['tijd'] ?>-<?= $slot['eind'] ?></button>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
             <?php endif; ?>
         </div>
+
         <?php endif; ?>
 
 
@@ -466,7 +499,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <!-- Hidden: datum, tijd en instructeurID worden via JS ingevuld -->
                 <input type="hidden" name="lesDatum"      id="hiddenDatum" value="<?= htmlspecialchars($gekozenDatum) ?>">
                 <input type="hidden" name="lestijd"       id="hiddenTijd">
-                <input type="hidden" name="instructeurID" id="hiddenInstr" value="<?= $rol === 'instructeur' ? $userID : '' ?>">
+                <input type="hidden" name="instructeurID" id="hiddenInstr" value="<?= $rol === 'instructeur' ? $userID : ($gekoppeldeInstructeur['instructeurID'] ?? '') ?>">
 
                 <!-- Voor welke leerling? (alleen zichtbaar voor instructeur) -->
                 <?php if ($rol === 'instructeur'): ?>
@@ -475,12 +508,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <select name="studentID" required>
                         <option value="">— Kies een leerling —</option>
                         <?php foreach ($studenten as $st):
+                            if (!studentMatchesInstructeur($st['transmissie'] ?? 'schakel', $transmissieInstr)) {
+                                continue;
+                            }
                             $tv  = $st['tussenvoegsel'] ? $st['tussenvoegsel'] . ' ' : '';
                             $vol = $st['voornaam'] . ' ' . $tv . $st['achternaam'];
+                            $badge = lesvoorkeurLabel($st['transmissie'] ?? 'schakel');
                         ?>
                             <option value="<?= $st['studentID'] ?>"
                                 <?= (isset($_POST['studentID']) && $_POST['studentID'] == $st['studentID']) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($vol) ?>
+                                <?= htmlspecialchars($vol) ?> (<?= $badge ?>)
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -525,52 +562,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ><?= htmlspecialchars($_POST['onderwerpen'] ?? '') ?></textarea>
                 </div>
 
-                <!-- Auto: alleen instructeur kiest de auto -->
+                <!-- Auto: instructeur = vaste lesauto, student = auto van instructeur -->
                 <?php if ($rol === 'instructeur'): ?>
-                <div class="form-group">
-                    <label>🚗 Auto <span style="color:#dc3545;">*</span></label>
-                    <select name="autoID" required>
-                        <option value="">— Kies een auto —</option>
-                        <?php foreach ($autos as $auto):
-                            $magKiezen = (int) ($auto['beschikbaar'] ?? 1) === 1;
-                            $label = autoLabel($auto);
-                            if (!$magKiezen) {
-                                $reden = trim($auto['statusReden'] ?? '');
-                                $label .= $reden !== '' ? ' — niet beschikbaar: ' . $reden : ' — niet beschikbaar';
-                            }
-                        ?>
+                    <?php if ($instrAuto): ?>
+                    <div class="form-group">
+                        <label>🚗 Jouw lesauto</label>
+                        <p style="margin:0;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;">
+                            <?= htmlspecialchars(autoLabel($instrAuto)) ?>
+                        </p>
+                        <input type="hidden" name="autoID" value="<?= (int) $instrAuto['autoID'] ?>">
+                    </div>
+                    <?php else: ?>
+                    <div class="form-group">
+                        <label>🚗 Auto <span style="color:#dc3545;">*</span></label>
+                        <select name="autoID" required>
+                            <option value="">— Kies een auto —</option>
+                            <?php foreach ($autos as $auto):
+                                $magKiezen = (int) ($auto['beschikbaar'] ?? 1) === 1;
+                                $label = autoLabel($auto);
+                            ?>
                             <option value="<?= (int) $auto['autoID'] ?>"<?= $magKiezen ? '' : ' disabled' ?>>
                                 <?= htmlspecialchars($label) ?>
                             </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <?php
-                    $beschikbaarAutos = count(array_filter($autos, fn($a) => (int) ($a['beschikbaar'] ?? 1) === 1));
-                    if ($beschikbaarAutos < count($autos)): ?>
-                    <p class="form-hint" style="margin-top:0.35rem;font-size:0.9rem;color:#64748b;">
-                        <?= $beschikbaarAutos ?> van <?= count($autos) ?> lesauto's zijn nu beschikbaar.
-                        Beheer status via <strong>Wagenpark</strong> (admin).
-                    </p>
+                            <?php endforeach; ?>
+                        </select>
+                        <p class="form-hint" style="margin-top:0.35rem;font-size:0.9rem;color:#64748b;">
+                            Stel je lestype in via <strong>Rooster</strong> om een vaste auto te koppelen.
+                        </p>
+                    </div>
                     <?php endif; ?>
-                </div>
                 <?php else: ?>
-                    <!-- Student kiest geen auto: instructeur wijst dit toe -->
-                    <!-- Eerste beschikbare auto als standaard -->
                     <?php
-                    $defaultAuto = null;
-                    foreach ($autos as $auto) {
-                        if ((int) ($auto['beschikbaar'] ?? 1) === 1) {
-                            $defaultAuto = $auto;
-                            break;
-                        }
-                    }
-                    if ($defaultAuto !== null): ?>
-                        <input type="hidden" name="autoID" value="<?= (int) $defaultAuto['autoID'] ?>">
+                    $studentAutoID = (int) ($gekoppeldeInstructeur['autoID'] ?? 0);
+                    if ($studentAutoID > 0): ?>
+                        <input type="hidden" name="autoID" value="<?= $studentAutoID ?>">
+                    <?php else: ?>
+                        <input type="hidden" name="autoID" value="0">
                     <?php endif; ?>
                 <?php endif; ?>
 
-                <!-- Foutmelding bij validatiefout -->
-                <?php if ($fout): ?>
+                                <?php if ($fout): ?>
                     <div class="fout">⚠️ <?= htmlspecialchars($fout) ?></div>
                 <?php endif; ?>
 

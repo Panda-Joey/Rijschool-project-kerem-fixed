@@ -6,14 +6,38 @@ $dbname     = "Eend";
 $conn = new mysqli($servername, $username, $password, $dbname);
 if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
 
+require_once dirname(__DIR__) . '/includes/lesvoorkeur.php';
+ensureLesvoorkeurSchema($conn);
+
+if (!isset($_SESSION['userID']) || ($_SESSION['rol'] ?? '') !== 'instructeur') {
+    header('Location: login.php');
+    exit;
+}
+
 $instrID = intval($_SESSION['userID']);
+$naam    = $_SESSION['naam'] ?? '';
 $succes  = "";
 $fout    = "";
+
+$r = $conn->query("SELECT transmissie FROM instructeurs WHERE instructeurID = $instrID");
+$instrTransmissie = ($r && $rij = $r->fetch_assoc()) ? $rij['transmissie'] : 'schakel';
 
 $dagNamen = ['Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag','Zondag'];
 
 // ── Verwerk opslaan ──────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['transmissie'])) {
+        $nieuwTransmissie = $_POST['transmissie'];
+        if (in_array($nieuwTransmissie, ['schakel', 'automaat', 'beide'], true)) {
+            $stmt = $conn->prepare("UPDATE instructeurs SET transmissie = ? WHERE instructeurID = ?");
+            $stmt->bind_param('si', $nieuwTransmissie, $instrID);
+            $stmt->execute();
+            $stmt->close();
+            syncInstructeurAuto($conn, $instrID, $nieuwTransmissie);
+            $instrTransmissie = $nieuwTransmissie;
+        }
+    }
+
     $gekozenDagen = $_POST['dagen'] ?? [];
 
     // Maximaal 3 dagen
@@ -86,16 +110,11 @@ function tijdOpties($geselecteerd = '') {
 <body>
 <div class="container">
 
-
-
-    <h1>Beschikbaarheid instellen</h1>
-
-    <div class="top-buttons">
-        <a href="<?= htmlspecialchars(srcDashboardPath(), ENT_QUOTES, 'UTF-8') ?>" class="nav-btn">Dashboard</a>
-        <a href="kalender.php"     class="nav-btn">Kalender</a>
-        <div class="nav-btn active">Rooster</div>
-        <a href="Profieli.php"     class="nav-btn">Profiel</a>
-    </div>
+    <?php
+    $navActief = 'rooster';
+    $paginaLabel = 'Rooster';
+    require_once 'instructeur_nav.php';
+    ?>
 
     <?php if ($succes): ?>
         <div class="succes">✅ <?= $succes ?></div>
@@ -112,6 +131,19 @@ function tijdOpties($geselecteerd = '') {
         </div>
 
         <form method="POST" action="beschikbaarheid.php" onsubmit="return valideer()">
+
+            <div class="form-group" style="margin-bottom:20px;">
+                <label>Welk type auto geef jij les in?</label>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;">
+                    <?php foreach (['schakel', 'automaat', 'beide'] as $t): ?>
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:10px 16px;border:2px solid <?= $instrTransmissie === $t ? '#1b2940' : '#ccc' ?>;background:<?= $instrTransmissie === $t ? '#1b2940' : 'white' ?>;color:<?= $instrTransmissie === $t ? 'white' : '#333' ?>;font-size:12px;font-weight:bold;">
+                        <input type="radio" name="transmissie" value="<?= $t ?>" <?= $instrTransmissie === $t ? 'checked' : '' ?> style="display:none;">
+                        <?= lesvoorkeurLabel($t) ?>
+                    </label>
+                    <?php endforeach; ?>
+                </div>
+                <p style="font-size:11px;color:#666;margin-top:6px;">Je gekoppelde lesauto wordt automatisch gekozen op basis van dit type.</p>
+            </div>
 
             <!-- Dag-kiezer -->
             <div class="dag-grid">

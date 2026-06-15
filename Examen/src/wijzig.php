@@ -157,9 +157,15 @@ foreach ($instructeurs as $instr) {
 <body>
 <div class="container">
 
-    <h1>Les Wijzigen</h1>
-
-    <?php require_once 'nav.php'; ?>
+    <?php
+    $navActief = 'kalender';
+    $paginaLabel = 'Les wijzigen';
+    if ($rol === 'instructeur') {
+        require_once 'instructeur_nav.php';
+    } else {
+        require_once 'student_nav.php';
+    }
+    ?>
 
     <div class="wijzig-form">
 

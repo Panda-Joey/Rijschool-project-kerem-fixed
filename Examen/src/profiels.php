@@ -86,21 +86,11 @@ if (!$student) {
 <body>
 <div class="container">
 
-    <div class="dash-header">
-        <div>
-            <h2>👋 <?= htmlspecialchars($naam) ?> <span class="rol-badge badge-student">🚗 Student</span></h2>
-            <span>Rijschool Dashboard > Profiel beheren</span>
-        </div>
-        <a href="../logout.php" class="logout-btn">Uitloggen →</a>
-    </div>
-
-    <div class="top-buttons">
-        <a href="Studentdashboard.php" class="nav-btn" style="text-decoration:none;color:inherit;">Dashboard</a>
-        <a href="kalender.php" class="nav-btn" style="text-decoration:none;color:inherit;">Kalender</a>
-        <!-- <a href="beschikbaarheid.php" class="nav-btn" style="text-decoration:none;color:inherit;">Rooster</a> -->
-        <div class="nav-btn active">Profiel</div>
-        <a href="les_inroosteren.php" class="nav-btn" style="text-decoration:none;color:inherit;">+ Nieuwe les</a>
-    </div>
+    <?php
+    $navActief = 'profiel';
+    $paginaLabel = 'Profiel beheren';
+    require_once 'student_nav.php';
+    ?>
 
     <?php if (!empty($success_msg)): ?>
         <div style="background: #d1e7dd; color: #0f5132; padding: 15px; border-radius: 8px; margin-bottom: 20px;">

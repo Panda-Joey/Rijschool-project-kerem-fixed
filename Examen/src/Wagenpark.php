@@ -34,21 +34,11 @@ foreach ($autos as $auto) {
 <body>
 <div class="container">
 
-    <div class="dash-header">
-        <div>
-            <h2>🚗 Wagenpark <span class="rol-badge badge-instructeur">Instructeur</span></h2>
-            <span>Overzicht beschikbare lesauto's</span>
-        </div>
-        <a href="<?= htmlspecialchars(logout_url(), ENT_QUOTES, 'UTF-8') ?>" class="logout-btn">Uitloggen →</a>
-    </div>
-
-    <div class="top-buttons">
-        <a href="<?= htmlspecialchars(srcDashboardPath(), ENT_QUOTES, 'UTF-8') ?>" class="nav-btn" style="text-decoration:none;color:inherit;">Dashboard</a>
-        <a href="kalender.php" class="nav-btn" style="text-decoration:none;color:inherit;">Kalender</a>
-        <a href="beschikbaarheid.php" class="nav-btn" style="text-decoration:none;color:inherit;">Rooster</a>
-        <a href="Profieli.php" class="nav-btn" style="text-decoration:none;color:inherit;">Profiel</a>
-        <div class="nav-btn active">Wagenpark</div>
-    </div>
+    <?php
+    $navActief = 'wagenpark';
+    $paginaLabel = 'Wagenpark';
+    require_once 'instructeur_nav.php';
+    ?>
 
     <?php if (!empty($nietBeschikbaar)): ?>
     <section class="wagen-sectie wagen-sectie-waarschuwing">

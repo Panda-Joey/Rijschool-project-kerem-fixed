@@ -33,7 +33,17 @@ CREATE TABLE `instructeurs` (
   `telefoon` VARCHAR(20) NOT NULL,
   `omschrijving` VARCHAR(255) NULL DEFAULT NULL,
   `rol` ENUM('admin', 'instructeur') NOT NULL DEFAULT 'instructeur',
+  `transmissie` ENUM('schakel', 'automaat', 'beide') NOT NULL DEFAULT 'schakel',
   PRIMARY KEY (`instructeurID`)
+) ENGINE=InnoDB;
+
+DROP TABLE IF EXISTS `instructeur_auto`;
+CREATE TABLE `instructeur_auto` (
+  `instructeurID` INT(11) NOT NULL,
+  `autoID` INT(11) NOT NULL,
+  PRIMARY KEY (`instructeurID`),
+  CONSTRAINT `fk_instr_auto_instr` FOREIGN KEY (`instructeurID`) REFERENCES `instructeurs` (`instructeurID`),
+  CONSTRAINT `fk_instr_auto_auto` FOREIGN KEY (`autoID`) REFERENCES `Autos` (`autoID`)
 ) ENGINE=InnoDB;
 
 DROP TABLE IF EXISTS `beschikbaarheid`;
@@ -62,6 +72,7 @@ CREATE TABLE `studenten` (
   `omschrijving` VARCHAR(255) NULL DEFAULT NULL,
   `geboortedatum` DATE NOT NULL,
   `status` ENUM('pending', 'actief', 'geslaagd') NOT NULL,
+  `transmissie` ENUM('schakel', 'automaat') NOT NULL DEFAULT 'schakel',
   PRIMARY KEY (`studentID`),
   UNIQUE INDEX `email_UNIQUE` (`email`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3;
@@ -134,10 +145,14 @@ INSERT INTO `Autos` (`autoID`, `merk`, `type`, `kenteken`, `transmissie`, `brand
 (2, 'Volkswagen', 'ID.3', 'X-456-BB', 0, 1, 1, NULL),
 (3, 'Ford', 'Fiesta', 'G-123-AA', 1, 0, 1, NULL);
 
-INSERT INTO `instructeurs` (`instructeurID`, `voornaam`, `tussenvoegsel`, `achternaam`, `email`, `wachtwoord`, `telefoon`, `omschrijving`, `rol`) VALUES
-(10, 'Henk', NULL, 'De Vries', 'henk@rijschooleend.nl', '$2y$10$oTCSp7GRKlyBeS2Ptn69iOEIlwfShKpBs5HwXHrxmmjbmAC2xo3lW', '0612345678', 'Ervaren instructeur voor schakelauto\'s.', 'instructeur'),
-(11, 'Anja', 'van', 'Dijk', 'anja@rijschooleend.nl', '$2y$10$oTCSp7GRKlyBeS2Ptn69iOEIlwfShKpBs5HwXHrxmmjbmAC2xo3lW', '0623456789', 'Specialist in faalangst en automaatrijden.', 'instructeur'),
-(12, 'Mark', NULL, 'Bakker', 'mark@rijschooleend.nl', '$2y$10$oTCSp7GRKlyBeS2Ptn69iOEIlwfShKpBs5HwXHrxmmjbmAC2xo3lW', '0634567890', 'Eigenaar en hoofd administratie.', 'admin');
+INSERT INTO `instructeurs` (`instructeurID`, `voornaam`, `tussenvoegsel`, `achternaam`, `email`, `wachtwoord`, `telefoon`, `omschrijving`, `rol`, `transmissie`) VALUES
+(10, 'Henk', NULL, 'De Vries', 'henk@rijschooleend.nl', '$2y$10$oTCSp7GRKlyBeS2Ptn69iOEIlwfShKpBs5HwXHrxmmjbmAC2xo3lW', '0612345678', 'Ervaren instructeur voor schakelauto\'s.', 'instructeur', 'schakel'),
+(11, 'Anja', 'van', 'Dijk', 'anja@rijschooleend.nl', '$2y$10$oTCSp7GRKlyBeS2Ptn69iOEIlwfShKpBs5HwXHrxmmjbmAC2xo3lW', '0623456789', 'Specialist in faalangst en automaatrijden.', 'instructeur', 'automaat'),
+(12, 'Mark', NULL, 'Bakker', 'mark@rijschooleend.nl', '$2y$10$oTCSp7GRKlyBeS2Ptn69iOEIlwfShKpBs5HwXHrxmmjbmAC2xo3lW', '0634567890', 'Eigenaar en hoofd administratie.', 'admin', 'beide');
+
+INSERT INTO `instructeur_auto` (`instructeurID`, `autoID`) VALUES
+(10, 3),
+(11, 2);
 
 INSERT INTO `beschikbaarheid` (`instructeurID`, `dagNaam`, `beginTijd`, `eindTijd`, `maxLessen`) VALUES
 (10, 'Maandag', '08:00:00', '17:00:00', 6),
@@ -146,11 +161,11 @@ INSERT INTO `beschikbaarheid` (`instructeurID`, `dagNaam`, `beginTijd`, `eindTij
 (11, 'Donderdag', '09:00:00', '21:00:00', 8),
 (12, 'Vrijdag', '08:00:00', '12:00:00', 3);
 
-INSERT INTO `studenten` (`studentID`, `voornaam`, `tussenvoegsel`, `achternaam`, `email`, `wachtwoord`, `telefoon`, `beperking`, `omschrijving`, `geboortedatum`, `status`) VALUES
-(1, 'Daan', NULL, 'Jansen', 'daan.jansen@example.com', '$2y$10$oTCSp7GRKlyBeS2Ptn69iOEIlwfShKpBs5HwXHrxmmjbmAC2xo3lW', '0645678901', 0, NULL, '2006-05-14', 'actief'),
-(2, 'Lisa', 'de', 'Jong', 'lisa.dejong@example.com', '$2y$10$oTCSp7GRKlyBeS2Ptn69iOEIlwfShKpBs5HwXHrxmmjbmAC2xo3lW', '0656789012', 0, 'Wil graag snel opgaan', '2005-11-23', 'actief'),
-(3, 'Bram', 'van der', 'Meer', 'bram.vdmeer@example.com', '$2y$10$oTCSp7GRKlyBeS2Ptn69iOEIlwfShKpBs5HwXHrxmmjbmAC2xo3lW', '0667890123', 1, 'Heeft lichte ADHD', '2007-01-08', 'pending'),
-(4, 'Emma', NULL, 'Smit', 'emma.smit@example.com', '$2y$10$oTCSp7GRKlyBeS2Ptn69iOEIlwfShKpBs5HwXHrxmmjbmAC2xo3lW', '0678901234', 0, 'Heeft al elders rijlessen gehad', '2004-03-30', 'geslaagd');
+INSERT INTO `studenten` (`studentID`, `voornaam`, `tussenvoegsel`, `achternaam`, `email`, `wachtwoord`, `telefoon`, `beperking`, `omschrijving`, `geboortedatum`, `status`, `transmissie`) VALUES
+(1, 'Daan', NULL, 'Jansen', 'daan.jansen@example.com', '$2y$10$oTCSp7GRKlyBeS2Ptn69iOEIlwfShKpBs5HwXHrxmmjbmAC2xo3lW', '0645678901', 0, NULL, '2006-05-14', 'actief', 'schakel'),
+(2, 'Lisa', 'de', 'Jong', 'lisa.dejong@example.com', '$2y$10$oTCSp7GRKlyBeS2Ptn69iOEIlwfShKpBs5HwXHrxmmjbmAC2xo3lW', '0656789012', 0, 'Wil graag snel opgaan', '2005-11-23', 'actief', 'automaat'),
+(3, 'Bram', 'van der', 'Meer', 'bram.vdmeer@example.com', '$2y$10$oTCSp7GRKlyBeS2Ptn69iOEIlwfShKpBs5HwXHrxmmjbmAC2xo3lW', '0667890123', 1, 'Heeft lichte ADHD', '2007-01-08', 'pending', 'automaat'),
+(4, 'Emma', NULL, 'Smit', 'emma.smit@example.com', '$2y$10$oTCSp7GRKlyBeS2Ptn69iOEIlwfShKpBs5HwXHrxmmjbmAC2xo3lW', '0678901234', 0, 'Heeft al elders rijlessen gehad', '2004-03-30', 'geslaagd', 'schakel');
 
 INSERT INTO `lespakket` (`naam`, `uren`, `prijs`) VALUES
 ('Instapprofiel', 20, 1150.00),

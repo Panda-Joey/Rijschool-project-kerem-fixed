@@ -82,27 +82,11 @@ $totaalUren   = $totaalLessen * 2; // Elke les duurt 2 uur
 <body>
 <div class="container">
 
-    <!-- Header -->
-    <div class="dash-header">
-        <div>
-            <h2>
-                👋 <?= htmlspecialchars($naam) ?>
-                <span class="rol-badge <?= $rol === 'instructeur' ? 'badge-instructeur' : 'badge-student' ?>">
-                    <?= $rol === 'instructeur' ? '🎓 Instructeur' : '🚗 Student' ?>
-                </span>
-            </h2>
-            <span>Rijschool Dashboard</span>
-        </div>
-        <a href="logout.php" class="logout-btn">Uitloggen →</a>
-    </div>
-
-    <!-- Nav buttons -->
-    <div class="top-buttons">
-        <div class="nav-btn active">Dashboard</div>
-        <a href="kalender.php" class="nav-btn" style="text-decoration:none;color:inherit;">Kalender</a>
-        <a href="Profiels.php" class="nav-btn" style="text-decoration:none;color:inherit;">Profiel</a>
-        <a href="les_inroosteren.php" class="nav-btn" style="text-decoration:none;color:inherit;">+ Nieuwe les</a>
-    </div>
+    <?php
+    $navActief = 'dashboard';
+    $paginaLabel = 'Rijschool Dashboard';
+    require_once 'student_nav.php';
+    ?>
 
     <!-- Stats -->
     <div class="stats-grid">

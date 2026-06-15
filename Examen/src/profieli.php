@@ -78,20 +78,11 @@ if (!$instructeur) {
 <body>
 <div class="container">
 
-    <div class="dash-header">
-        <div>
-            <h2>👋 <?= htmlspecialchars($naam) ?> <span class="rol-badge badge-instructeur" style="background:#10b981; color:white; padding:3px 8px; border-radius:4px; font-size:14px;">🎓 Instructeur</span></h2>
-            <span>Instructeur Dashboard > Profiel beheren</span>
-        </div>
-        <a href="../logout.php" class="logout-btn">Uitloggen →</a>
-    </div>
-
-    <div class="top-buttons">
-        <a href="instructeurdashboard.php" class="nav-btn" style="text-decoration:none;color:inherit;">Dashboard</a>
-        <a href="kalender.php" class="nav-btn" style="text-decoration:none;color:inherit;">Kalender</a>
-        <a href="beschikbaarheid.php" class="nav-btn" style="text-decoration:none;color:inherit;">Rooster / Beschikbaarheid</a>
-        <div class="nav-btn active">Profiel</div>
-    </div>
+    <?php
+    $navActief = 'profiel';
+    $paginaLabel = 'Profiel beheren';
+    require_once 'instructeur_nav.php';
+    ?>
 
     <?php if (!empty($success_msg)): ?>
         <div style="background: #d1e7dd; color: #0f5132; padding: 15px; border-radius: 8px; margin-bottom: 20px;">

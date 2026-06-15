@@ -9,6 +9,7 @@ if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
 $lesID = isset($_GET['lesID']) ? intval($_GET['lesID']) : 0;
 $maand = isset($_GET['maand']) ? intval($_GET['maand']) : 5;
 $fout  = "";
+$rol   = $_SESSION['rol'] ?? '';
 
 // ── Haal les op voor weergave ────────────────────────────────
 $lesResult = $conn->query("
@@ -49,9 +50,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 <div class="container">
 
-    <?php require_once 'nav.php'; ?>
-
-    <h1>Les Annuleren</h1>
+    <?php
+    $navActief = 'kalender';
+    $paginaLabel = 'Les annuleren';
+    if ($rol === 'instructeur') {
+        require_once 'instructeur_nav.php';
+    } else {
+        require_once 'student_nav.php';
+    }
+    ?>
 
     <div class="annuleer-form">
 

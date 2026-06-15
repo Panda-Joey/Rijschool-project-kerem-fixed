@@ -7,6 +7,12 @@
     box-sizing: border-box;
 }
 
+html {
+    /* Voorkom horizontale sprong tussen korte (dashboard) en lange (kalender) pagina's */
+    scrollbar-gutter: stable;
+    overflow-y: scroll;
+}
+
 body {
     margin: 0;
     padding: 10px;

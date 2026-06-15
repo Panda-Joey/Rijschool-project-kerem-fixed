@@ -44,13 +44,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['verzend_afwezigheid']
 <body>
 <div class="container">
 
-    <div class="dash-header">
-        <div>
-            <h2> Afwezigheid Doorgeven</h2>
-            <span>Rijschool Dashboard</span>
-        </div>
-        <a href="instructeurDashboard.php" class="logout-btn" style="background: #4b5563;">← Terug naar Dashboard</a>
-    </div>
+    <?php
+    $navActief = 'afwezigheid';
+    $paginaLabel = 'Afwezigheid doorgeven';
+    require_once 'instructeur_nav.php';
+    ?>
 
     <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-top: 20px;">
         <?php if (isset($succesBericht)): ?>

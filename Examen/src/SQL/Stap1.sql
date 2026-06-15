@@ -52,7 +52,26 @@ CREATE TABLE IF NOT EXISTS `Eend`.`instructeurs` (
   `telefoon` VARCHAR(20) NOT NULL,
   `omschrijving` VARCHAR(255) NULL DEFAULT NULL,
   `rol` ENUM('admin', 'instructeur') NOT NULL DEFAULT 'instructeur',
+  `transmissie` ENUM('schakel', 'automaat', 'beide') NOT NULL DEFAULT 'schakel',
   PRIMARY KEY (`instructeurID`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `Eend`.`instructeur_auto`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `Eend`.`instructeur_auto` ;
+
+CREATE TABLE IF NOT EXISTS `Eend`.`instructeur_auto` (
+  `instructeurID` INT(11) NOT NULL,
+  `autoID` INT(11) NOT NULL,
+  PRIMARY KEY (`instructeurID`),
+  CONSTRAINT `fk_instr_auto_instr`
+    FOREIGN KEY (`instructeurID`)
+    REFERENCES `Eend`.`instructeurs` (`instructeurID`),
+  CONSTRAINT `fk_instr_auto_auto`
+    FOREIGN KEY (`autoID`)
+    REFERENCES `Eend`.`Autos` (`autoID`))
 ENGINE = InnoDB;
 
 
@@ -94,6 +113,7 @@ CREATE TABLE IF NOT EXISTS `Eend`.`studenten` (
   `omschrijving` VARCHAR(255) NULL DEFAULT NULL,
   `geboortedatum` DATE NOT NULL,
   `status` ENUM('pending', 'actief', 'geslaagd') NOT NULL,
+  `transmissie` ENUM('schakel', 'automaat') NOT NULL DEFAULT 'schakel',
   PRIMARY KEY (`studentID`),
   UNIQUE INDEX `email_UNIQUE` (`email` ASC) VISIBLE)
 ENGINE = InnoDB

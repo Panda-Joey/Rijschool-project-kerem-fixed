@@ -116,22 +116,11 @@ $totaalUren   = $totaalLessen; // Elke les = 1 uur
 <body>
 <div class="container">
 
-    <div class="dash-header">
-        <div>
-            <h2>👋 <?= htmlspecialchars($naam) ?> <span class="rol-badge badge-instructeur">🎓 Instructeur</span></h2>
-            <span>Rijschool Dashboard</span>
-        </div>
-        <a href="../logout.php" class="logout-btn">Uitloggen →</a>
-    </div>
-
-    <div class="top-buttons">
-        <div class="nav-btn active">Dashboard</div>
-        <a href="kalender.php" class="nav-btn" style="text-decoration:none;color:inherit;">Kalender</a>
-        <a href="beschikbaarheid.php" class="nav-btn" style="text-decoration:none;color:inherit;">Rooster</a>
-        <a href="Profieli.php" class="nav-btn" style="text-decoration:none;color:inherit;">Profiel</a>
-        <a href="afwezigheid.php" class="nav-btn" style="text-decoration:none;color:#dc2626;font-weight:bold;"> Meld Afwezig</a>
-        <a href="Wagenpark.php" class="nav-btn" style="text-decoration:none;color:inherit;">Wagenpark</a>
-    </div>
+    <?php
+    $navActief = 'dashboard';
+    $paginaLabel = 'Rijschool Dashboard';
+    require_once 'instructeur_nav.php';
+    ?>
 
     <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr);">
         <div class="stat-card">

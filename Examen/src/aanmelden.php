@@ -29,7 +29,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $wachtwoord    = password_hash($_POST['wachtwoord'] ?? '', PASSWORD_DEFAULT);
     $lespakketID   = (int) ($_POST['lespakketID'] ?? 0);
     $beperking     = isset($_POST['beperking']) ? (int) $_POST['beperking'] : 0;
-    $transmissie   = trim($_POST['transmissie'] ?? 'schakel'); // Opgevangen uit het formulier
+    $transmissie   = trim($_POST['transmissie'] ?? 'schakel');
+    if (!in_array($transmissie, ['schakel', 'automaat'], true)) {
+        $transmissie = 'schakel';
+    }
     
     $omschrijving  = ($beperking === 1 && !empty(trim($_POST['omschrijving'] ?? '')))
         ? trim($_POST['omschrijving'])
@@ -44,14 +47,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Dit e-mailadres is al geregistreerd.';
         $messageType = 'error';
     } else {
-        // SQL-query aangepast om de verplichte 'transmissie' kolom mee te nemen
-       $sql = "INSERT INTO studenten
-            (voornaam, tussenvoegsel, achternaam, email, wachtwoord, telefoon, beperking, omschrijving, geboortedatum, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')";
+        require_once dirname(__DIR__) . '/includes/lesvoorkeur.php';
+        ensureLesvoorkeurSchema($conn);
+
+        $sql = "INSERT INTO studenten
+            (voornaam, tussenvoegsel, achternaam, email, wachtwoord, telefoon, beperking, omschrijving, geboortedatum, status, transmissie)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)";
 
         $stmt = $conn->prepare($sql);
         $stmt->bind_param(
-            "ssssssiss",
+            "ssssssisss",
             $voornaam,
             $tussenvoegsel,
             $achternaam,
@@ -60,7 +65,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $telefoon,
             $beperking,
             $omschrijving,
-            $geboortedatum
+            $geboortedatum,
+            $transmissie
         );
 
         if ($stmt->execute()) {
