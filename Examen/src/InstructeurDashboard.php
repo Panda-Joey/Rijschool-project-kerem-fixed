@@ -127,9 +127,12 @@ $totaalUren   = $totaalLessen * 2; // Elke les duurt 2 uur
     <!-- Nav buttons -->
     <div class="top-buttons">
         <div class="nav-btn active">Dashboard</div>
-        <a href="kalender.php" class="nav-btn" style="text-decoration:none;color:inherit;">Kalender</a>
+        <a href="index.php" class="nav-btn" style="text-decoration:none;color:inherit;">Kalender</a>
         <a href="beschikbaarheid.php" class="nav-btn" style="text-decoration:none;color:inherit;">Rooster</a>
         <div class="nav-btn">Profiel</div>
+        <?php if ($rol === 'instructeur'): ?>
+        <a href="examen.php" class="nav-btn" style="background:blue;color:white;text-decoration:none;">Examen</a>
+        <?php endif; ?>
         <?php if ($rol === 'student'): ?>
         <a href="les_inroosteren.php" class="nav-btn" style="background:#1b2940;color:white;text-decoration:none;">+ Nieuwe les</a>
         <?php endif; ?>
@@ -292,7 +295,7 @@ $totaalUren   = $totaalLessen * 2; // Elke les duurt 2 uur
                             <input type="hidden" name="goedkeur_lesID"     value="<?= $les['lesID'] ?>">
                             <input type="hidden" name="goedkeur_studentID" value="<?= $les['studentID'] ?>">
                             <button type="submit" style="background:#28a745;color:white;border:2px solid #28a745;padding:8px 12px;font-size:11px;font-family:Arial;font-weight:bold;cursor:pointer;white-space:nowrap;">
-                                ✅ Goedkeuren<br><small style="font-weight:normal;">-2 lesuren</small>
+                                ✅ Les goedkeuren
                             </button>
                         </form>
                     <?php else: ?>
