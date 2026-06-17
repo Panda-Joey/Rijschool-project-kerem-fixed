@@ -30,6 +30,7 @@ $navItems = [
     ['label' => 'Rooster',       'href' => 'beschikbaarheid.php',   'rol' => 'instructeur', 'id' => 'beschikbaarheid'],
     ['label' => '+ Les inplannen','href'=> 'les_inroosteren.php',   'rol' => 'instructeur', 'id' => 'les_inroosteren'],
     ['label' => '+ Nieuwe les',  'href' => 'les_inroosteren.php',   'rol' => 'student',     'id' => 'les_inroosteren'],
+    ['label' => '📋 Examen',     'href' => 'examen.php',            'rol' => 'instructeur', 'id' => 'examen'],
 ];
 
 // Pagina → nav-item id koppeling (voor actieve staat)
@@ -41,6 +42,7 @@ $paginaActief = [
     'index.php'                => 'kalender',
     'beschikbaarheid.php'      => 'beschikbaarheid',
     'les_inroosteren.php'      => 'les_inroosteren',
+    'examen.php'               => 'examen',
     'wijzig.php'               => 'kalender',
     'annuleer.php'             => 'kalender',
 ];
