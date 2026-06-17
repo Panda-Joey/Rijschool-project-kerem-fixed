@@ -11,6 +11,7 @@ $paginaLabel = $paginaLabel ?? 'Rijschool Dashboard';
 $navItems = [
     ['id' => 'dashboard',   'label' => 'Dashboard',     'href' => 'InstructeurDashboard.php'],
     ['id' => 'kalender',    'label' => 'Kalender',      'href' => 'kalender.php'],
+    ['id' => 'studenten',   'label' => 'Mijn Studenten', 'href' => 'overzichtStudent.php'],
     ['id' => 'rooster',     'label' => 'Rooster',       'href' => 'beschikbaarheid.php'],
     ['id' => 'profiel',     'label' => 'Profiel',       'href' => 'Profieli.php'],
     ['id' => 'afwezigheid', 'label' => 'Meld Afwezig',  'href' => 'afwezigheid.php', 'alert' => true],
