@@ -163,7 +163,7 @@ $totaalUren   = $totaalLessen; // Elke les = 1 uur
         <h3 style="margin: 0; font-size: 16px; font-weight: bold; letter-spacing: 0.5px; font-family: sans-serif;">Actuele Mededelingen</h3>
     </div>
 
-    <div style="background-color: #ffffff; padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+    <div style="background-color: #ffffff; padding: 20px; display: flex; flex-direction: column; gap: 15px; max-height: 320px; overflow-y: auto;">
         <?php if (empty($mededelingen)): ?>
             <p style="color: #6b7280; font-style: italic; margin: 0; font-family: sans-serif;">Er zijn momenteel geen actuele mededelingen.</p>
         <?php else: ?>

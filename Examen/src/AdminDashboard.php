@@ -7,9 +7,7 @@ $adminNaam = $_SESSION['naam'] ?? 'Admin';
 $message = '';
 $messageType = '';
 
-
-$adminNaam = $_SESSION['naam'] ?? 'Admin';
-
+// aantal actieve leerlingen
 $sql = "SELECT COUNT(*) AS totaal FROM studenten WHERE status = 'actief'";
 $result = $conn->query($sql);
 
@@ -19,6 +17,7 @@ if ($result && $row = $result->fetch_assoc()) {
     $aantalActieveStudenten = $row['totaal'];
 }
 
+//aantal geplande lessen
 $sql = "SELECT COUNT(*) AS totaal FROM lessen";
 $result = $conn->query($sql);
 
@@ -28,6 +27,7 @@ if ($result && $row = $result->fetch_assoc()) {
     $aantalLessen = $row['totaal'];
 }
 
+// meldingen toevoegen
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     $titel = $_POST['titel'];
@@ -44,6 +44,43 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 }
 
+// omzet uitrekenen 
+$sql = "
+SELECT
+(
+    SELECT COALESCE(SUM(lp.prijs),0)
+    FROM student_lespakket slp
+    JOIN lespakket lp
+        ON slp.idlespakket = lp.idlespakket
+)
++
+(
+    SELECT COALESCE(SUM(prijs),0)
+    FROM bijkopen
+) AS totaal_omzet
+";
+
+$result = mysqli_query($conn, $sql);
+$row = mysqli_fetch_assoc($result);
+
+$totaalOmzet = $row['totaal_omzet'];
+
+//slagingspersentage
+$sql = "
+SELECT
+ROUND(
+(COUNT(CASE WHEN geslaagd = 1 THEN 1 END) * 100.0)
+/
+COUNT(*)
+,2) AS slagingspercentage
+FROM studenten
+WHERE poging > 0
+";
+
+$result = mysqli_query($conn, $sql);
+$row = mysqli_fetch_assoc($result);
+
+$slagingspercentage = $row['slagingspercentage'];
 $stmtMededelingen = $conn->prepare("
     SELECT titel, bericht, datum_gemaakt 
     FROM meldingen 
@@ -93,10 +130,18 @@ $stmtMededelingen->close();
 
 <div class="dashboard-stats">
     <div class="stats-card">
+        <h3>omzet</h3>
+        <p>€ <?= number_format($totaalOmzet, 2, ',', '.') ?></p>
+    </div>
+    <div class="stats-card">
         <h3>Actieve studenten</h3>
         <p><?= $aantalActieveStudenten ?></p>
     </div>
         <div class="stats-card">
+        <h3>slagingspercentage</h3>
+        <p><?= $slagingspercentage ?>%</p>
+    </div>
+    <div class="stats-card">
         <h3>alle lessen</h3>
         <p><?= $aantalLessen ?></p>
     </div>
