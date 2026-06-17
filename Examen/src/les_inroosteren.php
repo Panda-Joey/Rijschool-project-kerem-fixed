@@ -57,7 +57,7 @@ if ($rol === 'student') {
     }
 
     $r = $conn->query("
-        SELECT i.instructeurID, i.voornaam, i.achternaam, i.omschrijving, i.transmissie,
+        SELECT i.instructeurID, i.voornaam, i.achternaam, i.omschrijving, i.transmissie, i.afwezigheid,
                a.autoID, a.merk, a.type, a.kenteken, a.transmissie AS autoTransmissie,
                a.beschikbaar, a.statusReden
         FROM studenten_has_instructeurs shi
@@ -234,6 +234,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $fout = $reden !== ''
                 ? "Deze auto is niet beschikbaar: $reden"
                 : "Deze auto is niet beschikbaar.";
+        }
+    }
+
+    if (!$fout) {
+        $afwRes = $conn->query("SELECT afwezigheid FROM instructeurs WHERE instructeurID = $instrID LIMIT 1");
+        if ($afwRes && ($afwRow = $afwRes->fetch_assoc()) && $afwRow['afwezigheid'] === 'niet') {
+            $fout = 'Deze instructeur is momenteel niet beschikbaar. Geplande lessen zijn komen te vervallen.';
         }
     }
 
@@ -452,6 +459,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php if (!$gekoppeldeInstructeur): ?>
                 <div class="geen-lessen">Je hebt nog geen vaste instructeur. Neem contact op met de rijschool.</div>
             <?php else:
+                if (($gekoppeldeInstructeur['afwezigheid'] ?? 'beschikbaar') === 'niet'): ?>
+                <div class="geen-lessen">Je instructeur is momenteel niet beschikbaar. Geplande lessen komen te vervallen; nieuwe lessen inplannen is niet mogelijk.</div>
+            <?php else:
                 $iID  = (int) $gekoppeldeInstructeur['instructeurID'];
                 $data = $instrData[$iID] ?? ['beschikbaar' => false, 'slots' => [], 'nogVrij' => 0];
                 $vol  = empty($data['beschikbaar']) || ($data['nogVrij'] ?? 0) <= 0;
@@ -493,7 +503,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     <?php endif; ?>
                 </div>
-            <?php endif; ?>
+            <?php endif; endif; ?>
         </div>
 
         <?php endif; ?>

@@ -226,6 +226,43 @@ if (isset($_POST['bewerken'])) {
 
             $stmt->execute();
             $stmt->close();
+
+            if ($afwezigheid === 'niet') {
+                $redenVervalt = 'Instructeur niet beschikbaar';
+
+                $stmtLessen = $conn->prepare("
+                    SELECT lesID, studentID, goedgekeurd
+                    FROM lessen
+                    WHERE instructeurID = ?
+                      AND vervallen = 0
+                      AND (lesDatum > CURDATE() OR (lesDatum = CURDATE() AND lestijd >= CURTIME()))
+                ");
+                $stmtLessen->bind_param('i', $userID);
+                $stmtLessen->execute();
+                $teVervallen = $stmtLessen->get_result();
+
+                while ($les = $teVervallen->fetch_assoc()) {
+                    if ((int) ($les['goedgekeurd'] ?? 0) === 1) {
+                        $studentID = (int) $les['studentID'];
+                        $conn->query("UPDATE student_lespakket SET overige_uren = overige_uren + 2 WHERE studentID = $studentID");
+                    }
+                }
+                $stmtLessen->close();
+
+                $stmtVerval = $conn->prepare("
+                    UPDATE lessen
+                    SET vervallen = 1,
+                        redenVervalt = ?,
+                        goedgekeurd = 0,
+                        goedgekeurd_op = NULL
+                    WHERE instructeurID = ?
+                      AND vervallen = 0
+                      AND (lesDatum > CURDATE() OR (lesDatum = CURDATE() AND lestijd >= CURTIME()))
+                ");
+                $stmtVerval->bind_param('si', $redenVervalt, $userID);
+                $stmtVerval->execute();
+                $stmtVerval->close();
+            }
         }
 
         header('Location: AdminGebruikers.php');
