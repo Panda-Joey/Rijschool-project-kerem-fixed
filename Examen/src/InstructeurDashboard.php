@@ -100,7 +100,7 @@ foreach ($lessen as $les) {
     }
 }
 
-$doelgroepRol = 'alle_instructeurs';
+$doelgroepRol = 'instructeur';
 
 $stmtMededelingen = $conn->prepare("
     SELECT titel, bericht, datum_gemaakt 

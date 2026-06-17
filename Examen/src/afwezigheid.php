@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['verzend_afwezigheid']
     $bericht = "Instructeur " . $naam . " (ID: " . $userID . ") heeft zich afwezig gemeld.\nReden: " . $reden;
     
     if (!empty($reden)) {
-        $stmtMeld = $conn->prepare("INSERT INTO meldingen (titel, bericht, ontvanger_type, ontvanger_id) VALUES (?, ?, 'iedereen', 0)");
+        $stmtMeld = $conn->prepare("INSERT INTO meldingen (titel, bericht, ontvanger_type, ontvanger_id) VALUES (?, ?, 'admin', 0)");
         $stmtMeld->bind_param("ss", $titel, $bericht);
         $stmtMeld->execute();
         $stmtMeld->close();

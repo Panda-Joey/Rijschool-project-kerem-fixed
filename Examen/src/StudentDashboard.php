@@ -67,7 +67,7 @@ foreach ($lessen as $les) {
     if ($les['lesDatum'] >= $vandaag) { $volgendeLes = $les; break; }
 }
 
-$doelgroepRol = ($rol === 'instructeur') ? 'alle_instructeurs' : 'alle_studenten';
+$doelgroepRol = ($rol === 'instructeur') ? 'instructeur' : 'student';
 
 $stmtMededelingen = $conn->prepare("
     SELECT titel, bericht, datum_gemaakt 
