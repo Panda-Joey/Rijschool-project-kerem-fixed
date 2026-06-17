@@ -184,8 +184,8 @@ function tijdOpties(string $geselecteerd = ''): string
 
     <!-- ── NAVIGATIE ──────────────────────────────────────────── -->
     <div class="top-buttons">
-        <a href="dashboard.php"       class="nav-btn">Dashboard</a>
-        <a href="index.php"           class="nav-btn">Kalender</a>
+        <a href="instructeurdashboard.php"       class="nav-btn">Dashboard</a>
+        <a href="kalender.php"           class="nav-btn">Kalender</a>
         <div                          class="nav-btn active">Rooster</div>
         <a href="les_inroosteren.php" class="nav-btn">+ Les inplannen</a>
     </div>
