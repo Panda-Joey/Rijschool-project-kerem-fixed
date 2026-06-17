@@ -333,7 +333,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                     <th>Telefoon</th>
                     <th>Lespakket</th>
                     <th>actief</th>
-                    <th>beperkt</th>
+                    <th>beperking</th>
+                    <th>omschrijving</th>
                     <th>Acties</th>
                 </tr>
             </thead>
@@ -342,21 +343,21 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
             $statusFilter = $_GET['gebruiker_filter'] ?? '';
 
             if ($statusFilter === 'actieve-studenten') {
-                $query = "SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, l.naam AS lespakket
+                $query = "SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, s.omschrijving, l.naam AS lespakket
                           FROM studenten s
                           LEFT JOIN student_lespakket sl ON s.studentID = sl.studentID
                           LEFT JOIN lespakket l ON sl.idlespakket = l.idlespakket
                           WHERE s.status = 'actief'";
             } elseif ($statusFilter === 'niewe-studenten') {
-                $query = "SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, l.naam AS lespakket
+                $query = "SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, s.omschrijving, l.naam AS lespakket
                           FROM studenten s
                           LEFT JOIN student_lespakket sl ON s.studentID = sl.studentID
                           LEFT JOIN lespakket l ON sl.idlespakket = l.idlespakket
                           WHERE s.status = 'pending'";
             } elseif ($statusFilter === 'instructeurs') {
-                $query = 'SELECT instructeurID, voornaam, afwezigheid, tussenvoegsel, achternaam, email, telefoon FROM instructeurs';
+                $query = 'SELECT instructeurID, voornaam, afwezigheid, tussenvoegsel, achternaam, email, telefoon, omschrijving FROM instructeurs';
             } else {
-                $query = "SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, l.naam AS lespakket
+                $query = "SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, s.omschrijving, l.naam AS lespakket
                           FROM studenten s
                           LEFT JOIN student_lespakket sl ON s.studentID = sl.studentID
                           LEFT JOIN lespakket l ON sl.idlespakket = l.idlespakket";
@@ -387,13 +388,14 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                        default => 'gray'
                      };
 
-    echo "<td><span style='color:$kleur'>" . ucfirst($status) . "</span></td>";
-} else {
-    $dbStatus = $row['status'] ?? 'pending';
-    echo '<td>' . ($dbStatus === 'actief' ? 'Ja' : 'Nee') . '</td>';
-}
+                     echo "<td><span style='color:$kleur'>" . ucfirst($status) . "</span></td>";
+                    } else {
+                    $dbStatus = $row['status'] ?? 'pending';
+                     echo '<td>' . ($dbStatus === 'actief' ? 'Ja' : 'Nee') . '</td>';
+                    }
 
                     echo '<td>' . (isset($row['beperking']) && $row['beperking'] == 1 ? 'Ja' : 'Nee') . '</td>';
+                    echo '<td>' . htmlspecialchars($row['omschrijving'] ?? '-') . '</td>';
                     echo '<td>';
                     echo "  <div class='action-buttons'>";
                     echo "    <button type='button' class='btn-edit' onclick='openEditModal(" . json_encode([
