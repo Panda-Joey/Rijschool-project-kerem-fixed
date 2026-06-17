@@ -47,7 +47,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 }
 
-<<<<<<< HEAD
 // omzet uitrekenen 
 $sql = "
 SELECT
@@ -85,7 +84,6 @@ $result = mysqli_query($conn, $sql);
 $row = mysqli_fetch_assoc($result);
 
 $slagingspercentage = $row['slagingspercentage'];
-=======
 $stmtMededelingen = $conn->prepare("
     SELECT titel, bericht, datum_gemaakt 
     FROM meldingen 
@@ -102,7 +100,6 @@ while ($row = $resMededelingen->fetch_assoc()) {
     $mededelingen[] = $row;
 }
 $stmtMededelingen->close();
->>>>>>> b2d44a4ef2b1534bb79396d79c28f2bce54842de
 
 ?>
 
