@@ -105,7 +105,7 @@ $doelgroepRol = 'instructeur';
 $stmtMededelingen = $conn->prepare("
     SELECT titel, bericht, datum_gemaakt 
     FROM meldingen 
-    WHERE ontvanger_type = ? OR ontvanger_type = 'iedereen'
+    WHERE ontvanger_type = ? OR ontvanger_type = 'iedereen' OR ontvanger_type = 'alle_instructeurs'
     ORDER BY datum_gemaakt DESC 
     LIMIT 5
 ");

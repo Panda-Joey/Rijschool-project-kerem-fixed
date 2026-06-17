@@ -142,7 +142,7 @@ CREATE TABLE `meldingen` (
   `meldingID` INT(11) NOT NULL AUTO_INCREMENT,
   `titel` VARCHAR(100) NOT NULL,
   `bericht` VARCHAR(500) NOT NULL,
-  `ontvanger_type` ENUM('iedereen', 'alle_studenten', 'alle_instructeurs', 'student', 'instructeur') NOT NULL,
+  `ontvanger_type` ENUM('iedereen', 'alle_studenten', 'alle_instructeurs', 'student', 'instructeur', 'admin') NOT NULL,
   `ontvanger_id` INT(11) NULL DEFAULT NULL,
   `datum_gemaakt` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`meldingID`)
@@ -210,8 +210,8 @@ INSERT INTO `studenten_has_instructeurs` (`studentID`, `instructeurID`) VALUES
 (3, 11);
 
 INSERT INTO `meldingen` (`titel`, `bericht`, `ontvanger_type`, `ontvanger_id`) VALUES
-('Welkom!', 'Welkom op het rijschoolportaal. Bekijk je lessen en plan nieuwe in.', 'alle_studenten', NULL),
-('Team update', 'Controleer regelmatig je rooster en beschikbaarheid.', 'alle_instructeurs', NULL),
+('Welkom!', 'Welkom op het rijschoolportaal. Bekijk je lessen en plan nieuwe in.', 'student', NULL),
+('Team update', 'Controleer regelmatig je rooster en beschikbaarheid.', 'instructeur', NULL),
 ('Algemene mededeling', 'De rijschool is gesloten op feestdagen.', 'iedereen', NULL);
 
 INSERT INTO `lessen` (`lesDatum`, `lestijd`, `ophaalLocatie`, `doel`, `onderwerpen`, `studentID`, `instructeurID`, `autoID`, `vervallen`, `redenWijzig`, `redenVervalt`) VALUES
