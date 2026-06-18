@@ -8,9 +8,7 @@
    melding naar de student.
    ============================================================ */
 
-session_start();
-
-/* --- Toegangscontrole --- */
+/* --- Toegangscontrole (sessie via includes/app.php) --- */
 if (!isset($_SESSION['userID']) || $_SESSION['rol'] !== 'instructeur') {
     header("Location: login.php");
     exit;
@@ -259,7 +257,11 @@ $stmt->close();
 <body>
 <div class="container">
 
-    <?php require_once 'nav.php'; ?>
+    <?php
+    $navActief = 'examen';
+    $paginaLabel = 'Examen aanvragen';
+    require_once 'instructeur_nav.php';
+    ?>
 
     <!-- ── FEEDBACK ───────────────────────────────────────────── -->
     <?php if ($succes): ?>

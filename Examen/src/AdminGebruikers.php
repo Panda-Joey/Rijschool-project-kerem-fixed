@@ -1,7 +1,9 @@
 <?php
 require_once dirname(__DIR__) . '/includes/database.php';
+require_once dirname(__DIR__) . '/includes/instructeur_afwezigheid.php';
 
 $conn = getDbConnection();
+ensureInstructeurAfwezigheidSchema($conn);
 $adminNaam = $_SESSION['naam'] ?? 'Admin';
 $message = '';
 $messageType = '';
@@ -137,7 +139,9 @@ if (isset($_POST['bewerken'])) {
     $telefoon      = trim($_POST['telefoon'] ?? '');
     $wachtwoord    = $_POST['wachtwoord'] ?? '';
 
-    $afwezigheid = $_POST['afwezigheid'] ?? 'beschikbaar';
+    $afwezigheid  = $_POST['afwezigheid'] ?? 'beschikbaar';
+    $afwezigVan   = trim($_POST['afwezig_van'] ?? '');
+    $afwezigTot   = trim($_POST['afwezig_tot'] ?? '');
 
     if ($userID <= 0) {
         $message = 'Geen geldige gebruiker geselecteerd.';
@@ -188,80 +192,69 @@ if (isset($_POST['bewerken'])) {
             $stmt->execute();
             $stmt->close();
         } else {
-            if ($wachtwoord !== '') {
-                $hash = password_hash($wachtwoord, PASSWORD_DEFAULT);
-                $stmt = $conn->prepare("
-                    UPDATE instructeurs
-                    SET voornaam=?, tussenvoegsel=?, achternaam=?, email=?, wachtwoord=?, telefoon=? , afwezigheid=?
-                    WHERE instructeurID=?
-                ");
-                $stmt->bind_param(
-                    'sssssssi',
-                    $voornaam,
-                    $tussenvoegsel,
-                    $achternaam,
-                    $email,
-                    $hash,
-                    $telefoon,
-                    $afwezigheid,
-                    $userID
-                );
+            if ($afwezigheid === 'niet' && ($afwezigVan === '' || $afwezigTot === '')) {
+                $message = 'Vul een start- en einddatum in voor de afwezigheidsperiode.';
+                $messageType = 'fout';
+            } elseif ($afwezigheid === 'niet' && $afwezigVan > $afwezigTot) {
+                $message = 'De einddatum moet op of na de startdatum liggen.';
+                $messageType = 'fout';
             } else {
-                $stmt = $conn->prepare("
-                    UPDATE instructeurs
-                    SET voornaam=?, tussenvoegsel=?, achternaam=?, email=?, telefoon=?, afwezigheid=?
-                    WHERE instructeurID=?
-                ");
-                $stmt->bind_param(
-                    'ssssssi',
-                    $voornaam,
-                    $tussenvoegsel,
-                    $achternaam,
-                    $email,
-                    $telefoon,
-                    $afwezigheid,
-                    $userID
-                );
-            }
+                $vanDb = $afwezigheid === 'niet' ? $afwezigVan : null;
+                $totDb = $afwezigheid === 'niet' ? $afwezigTot : null;
 
-            $stmt->execute();
-            $stmt->close();
-
-            if ($afwezigheid === 'niet') {
-                $redenVervalt = 'Instructeur niet beschikbaar';
-
-                $stmtLessen = $conn->prepare("
-                    SELECT lesID, studentID, goedgekeurd
-                    FROM lessen
-                    WHERE instructeurID = ?
-                      AND vervallen = 0
-                      AND (lesDatum > CURDATE() OR (lesDatum = CURDATE() AND lestijd >= CURTIME()))
-                ");
-                $stmtLessen->bind_param('i', $userID);
-                $stmtLessen->execute();
-                $teVervallen = $stmtLessen->get_result();
-
-                while ($les = $teVervallen->fetch_assoc()) {
-                    if ((int) ($les['goedgekeurd'] ?? 0) === 1) {
-                        $studentID = (int) $les['studentID'];
-                        $conn->query("UPDATE student_lespakket SET overige_uren = overige_uren + 2 WHERE studentID = $studentID");
-                    }
+                if ($wachtwoord !== '') {
+                    $hash = password_hash($wachtwoord, PASSWORD_DEFAULT);
+                    $stmt = $conn->prepare("
+                        UPDATE instructeurs
+                        SET voornaam=?, tussenvoegsel=?, achternaam=?, email=?, wachtwoord=?, telefoon=?,
+                            afwezigheid=?, afwezig_van=?, afwezig_tot=?
+                        WHERE instructeurID=?
+                    ");
+                    $stmt->bind_param(
+                        'sssssssssi',
+                        $voornaam,
+                        $tussenvoegsel,
+                        $achternaam,
+                        $email,
+                        $hash,
+                        $telefoon,
+                        $afwezigheid,
+                        $vanDb,
+                        $totDb,
+                        $userID
+                    );
+                } else {
+                    $stmt = $conn->prepare("
+                        UPDATE instructeurs
+                        SET voornaam=?, tussenvoegsel=?, achternaam=?, email=?, telefoon=?,
+                            afwezigheid=?, afwezig_van=?, afwezig_tot=?
+                        WHERE instructeurID=?
+                    ");
+                    $stmt->bind_param(
+                        'ssssssssi',
+                        $voornaam,
+                        $tussenvoegsel,
+                        $achternaam,
+                        $email,
+                        $telefoon,
+                        $afwezigheid,
+                        $vanDb,
+                        $totDb,
+                        $userID
+                    );
                 }
-                $stmtLessen->close();
 
-                $stmtVerval = $conn->prepare("
-                    UPDATE lessen
-                    SET vervallen = 1,
-                        redenVervalt = ?,
-                        goedgekeurd = 0,
-                        goedgekeurd_op = NULL
-                    WHERE instructeurID = ?
-                      AND vervallen = 0
-                      AND (lesDatum > CURDATE() OR (lesDatum = CURDATE() AND lestijd >= CURTIME()))
-                ");
-                $stmtVerval->bind_param('si', $redenVervalt, $userID);
-                $stmtVerval->execute();
-                $stmtVerval->close();
+                $stmt->execute();
+                $stmt->close();
+
+                if ($afwezigheid === 'niet') {
+                    syncInstructeurAfwezigheidslessen($conn, $userID, $afwezigVan, $afwezigTot);
+                } else {
+                    stelInstructeurBeschikbaar($conn, $userID);
+                }
+
+                header('Location: AdminGebruikers.php');
+                exit();
             }
         }
 
@@ -392,7 +385,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                           LEFT JOIN lespakket l ON sl.idlespakket = l.idlespakket
                           WHERE s.status = 'pending'";
             } elseif ($statusFilter === 'instructeurs') {
-                $query = 'SELECT instructeurID, voornaam, afwezigheid, tussenvoegsel, achternaam, email, telefoon, omschrijving FROM instructeurs';
+                $query = 'SELECT instructeurID, voornaam, afwezigheid, afwezig_van, afwezig_tot, tussenvoegsel, achternaam, email, telefoon, omschrijving FROM instructeurs';
             } else {
                 $query = "SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, s.omschrijving, l.naam AS lespakket
                           FROM studenten s
@@ -425,7 +418,13 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                        default => 'gray'
                      };
 
-                     echo "<td><span style='color:$kleur'>" . ucfirst($status) . "</span></td>";
+                     $statusTekst = ucfirst($status);
+                     if ($status === 'niet' && !empty($row['afwezig_van']) && !empty($row['afwezig_tot'])) {
+                         $statusTekst .= ' (' . date('d-m-Y', strtotime($row['afwezig_van']))
+                             . ' t/m ' . date('d-m-Y', strtotime($row['afwezig_tot'])) . ')';
+                     }
+
+                     echo "<td><span style='color:$kleur'>" . htmlspecialchars($statusTekst) . "</span></td>";
                     } else {
                     $dbStatus = $row['status'] ?? 'pending';
                      echo '<td>' . ($dbStatus === 'actief' ? 'Ja' : 'Nee') . '</td>';
@@ -444,6 +443,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                         'email' => $row['email'] ?? '',
                         'telefoon' => $row['telefoon'] ?? '',
                         'status' => $row['status'] ?? 'pending',
+                        'afwezigheid' => $row['afwezigheid'] ?? 'beschikbaar',
+                        'afwezig_van' => $row['afwezig_van'] ?? '',
+                        'afwezig_tot' => $row['afwezig_tot'] ?? '',
                     ]) . ")'>Bewerken</button>";
                     echo "    <a href='AdminGebruikers.php?action=delete&amp;id=" . $id . "' class='btn-delete' onclick='return confirm(\"Weet je zeker dat je dit wilt verwijderen?\");'>Verwijderen</a>";
                     echo '  </div>';
@@ -561,10 +563,20 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
 
             <div class="modal-form-group" id="edit_afwezigheid_group" style="display:none;">
              <label for="edit_afwezigheid">Beschikbaarheid:</label>
-             <select name="afwezigheid" id="edit_afwezigheid">
+             <select name="afwezigheid" id="edit_afwezigheid" onchange="toggleAfwezigPeriode()">
              <option value="beschikbaar">Beschikbaar</option>
-             <option value="niet">Niet beschikbaar</option>
+             <option value="niet">Niet beschikbaar (periode)</option>
               </select>
+            </div>
+
+            <div class="modal-form-group" id="edit_afwezig_periode_group" style="display:none;">
+                <label for="edit_afwezig_van">Afwezig vanaf:</label>
+                <input type="date" name="afwezig_van" id="edit_afwezig_van">
+                <label for="edit_afwezig_tot" style="margin-top:0.5rem;display:block;">Afwezig tot en met:</label>
+                <input type="date" name="afwezig_tot" id="edit_afwezig_tot">
+                <p style="font-size:0.85rem;color:#64748b;margin-top:0.5rem;">
+                    Alleen lessen binnen deze periode worden geannuleerd. Lessen daarna blijven staan.
+                </p>
             </div>
 
             <div class="modal-form-group">
@@ -622,6 +634,11 @@ function toggleAddFields() {
     extraFields.style.display = rol === 'instructeur' ? 'none' : 'block';
 }
 
+function toggleAfwezigPeriode() {
+    var isAfwezig = document.getElementById('edit_afwezigheid').value === 'niet';
+    document.getElementById('edit_afwezig_periode_group').style.display = isAfwezig ? 'block' : 'none';
+}
+
 function openEditModal(data) {
     document.getElementById('edit_studentID').value = data.id;
     document.getElementById('edit_rol').value = data.rol;
@@ -637,6 +654,9 @@ function openEditModal(data) {
 
         document.getElementById('edit_afwezigheid').value =
             data.afwezigheid || 'beschikbaar';
+        document.getElementById('edit_afwezig_van').value = data.afwezig_van || '';
+        document.getElementById('edit_afwezig_tot').value = data.afwezig_tot || '';
+        toggleAfwezigPeriode();
     } else {
         document.getElementById('edit_status_group').style.display = 'block';
         document.getElementById('edit_afwezigheid_group').style.display = 'none';

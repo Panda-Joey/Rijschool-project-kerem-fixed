@@ -4,7 +4,8 @@ if (!isset($_SESSION['userID']) || $_SESSION['rol'] !== 'instructeur') {
     exit;
 }
 
-$instructeurID = $_SESSION['instructeurID'] ?? 0;
+$instructeurID = (int) ($_SESSION['userID'] ?? 0);
+$naam          = $_SESSION['naam'] ?? '';
 
 $servername = "mysql";
 $username   = "root";
@@ -31,8 +32,8 @@ if ($conn->connect_error) {
 <div class="container">
 
     <?php
-    $navActief = 'dashboard';
-    $paginaLabel = 'Rijschool Dashboard';
+    $navActief = 'studenten';
+    $paginaLabel = 'Mijn Studenten';
     require_once 'instructeur_nav.php';
     ?>
 

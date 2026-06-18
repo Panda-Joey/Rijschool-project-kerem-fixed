@@ -35,6 +35,8 @@ CREATE TABLE `instructeurs` (
   `rol` ENUM('admin', 'instructeur') NOT NULL DEFAULT 'instructeur',
   `transmissie` ENUM('schakel', 'automaat', 'beide') NOT NULL DEFAULT 'schakel',
   `afwezigheid` ENUM('beschikbaar', 'niet') NOT NULL DEFAULT 'beschikbaar',
+  `afwezig_van` DATE NULL DEFAULT NULL,
+  `afwezig_tot` DATE NULL DEFAULT NULL,
   PRIMARY KEY (`instructeurID`)
 ) ENGINE=InnoDB;
 
