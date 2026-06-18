@@ -67,14 +67,12 @@ $totaalOmzet = $row['totaal_omzet'];
 
 //slagingspersentage
 $sql = "
-SELECT
-ROUND(
-(COUNT(CASE WHEN geslaagd = 1 THEN 1 END) * 100.0)
-/
-COUNT(*)
-,2) AS slagingspercentage
+SELECT ROUND(
+    SUM(geslaagd) * 100.0 / SUM(poging),
+    2
+) AS slagingspercentage
 FROM studenten
-WHERE poging > 0
+WHERE poging > 0;
 ";
 
 $result = mysqli_query($conn, $sql);
