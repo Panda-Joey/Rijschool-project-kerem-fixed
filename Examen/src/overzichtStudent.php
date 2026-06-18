@@ -1,28 +1,15 @@
-<?php 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+<?php
 
-if (!isset($_SESSION['userID']) || $_SESSION['rol'] !== 'instructeur') {
-    header("Location: /login.php");
+if (!isset($_SESSION['userID']) || ($_SESSION['rol'] ?? '') !== 'instructeur') {
+    header('Location: ' . login_url());
     exit;
 }
 
-$instructeurID = (int) ($_SESSION['userID'] ?? 0);
+$instructeurID = (int) $_SESSION['userID'];
 $naam          = $_SESSION['naam'] ?? '';
 
-$instructeurID = $_SESSION['instructeurID'] ?? 0;
-
-$servername = "mysql";
-$username   = "root";
-$password   = "password";
-$dbname     = "Eend";
-
-$conn = new mysqli($servername, $username, $password, $dbname);
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-?>
+require_once dirname(__DIR__) . '/includes/database.php';
+$conn = getDbConnection();?>
 
 <!DOCTYPE html>
 <html lang="nl">
