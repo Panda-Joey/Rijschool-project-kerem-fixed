@@ -104,7 +104,7 @@ $stmtMededelingen->close();
 <head>
     <meta charset="UTF-8">
     <title>Beheerderspaneel</title>
-    <link rel="stylesheet" href="css/AD.css">
+    <link rel="stylesheet" href="<?= htmlspecialchars(src_url('css/AD.css'), ENT_QUOTES, 'UTF-8') ?>">
 </head>
 <body>
 
@@ -147,19 +147,20 @@ $stmtMededelingen->close();
     </div>
 </div>
 
-<div class="mededelingen-container">
-    <div class="mededelingen-header">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<div class="mededelingen-container" style="width: 95%; max-width: 1100px; margin: 40px auto 25px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); border-radius: 8px; overflow: hidden; border: 1px solid #1e293b; background: #fff;">
+
+    <div style="background-color: #1e293b; color: #ffffff; padding: 15px 20px; display: flex; align-items: center; gap: 10px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ffffff;">
             <circle cx="12" cy="12" r="10"></circle>
             <line x1="12" y1="8" x2="12" y2="12"></line>
             <line x1="12" y1="16" x2="12.01" y2="16"></line>
         </svg>
-        <h3>Actuele Mededelingen</h3>
+        <h3 style="margin: 0; font-size: 16px; font-weight: bold; letter-spacing: 0.5px; font-family: sans-serif;">Actuele Mededelingen</h3>
     </div>
 
-    <div class="mededelingen-body">
+    <div style="background-color: #ffffff; padding: 20px; display: flex; flex-direction: column; gap: 15px; max-height: 320px; overflow-y: auto;">
         <?php if (empty($mededelingen)): ?>
-            <p class="mededelingen-empty">Er zijn momenteel geen actuele mededelingen.</p>
+            <p style="color: #6b7280; font-style: italic; margin: 0; font-family: sans-serif;">Er zijn momenteel geen actuele mededelingen.</p>
         <?php else: ?>
             <?php foreach ($mededelingen as $item):
                 $datumMaanden = [1=>"januari", 2=>"februari", 3=>"maart", 4=>"april", 5=>"mei", 6=>"juni", 7=>"juli", 8=>"augustus", 9=>"september", 10=>"oktober", 11=>"november", 12=>"december"];
@@ -169,10 +170,16 @@ $stmtMededelingen->close();
                 $jaarNummer = date('Y', $time);
                 $geformateerdeDatum = $dag . " " . $datumMaanden[$maandNummer] . " " . $jaarNummer;
             ?>
-                <div class="mededeling-item">
-                    <span class="mededeling-datum"><?= $geformateerdeDatum ?></span>
-                    <strong class="mededeling-titel"><?= htmlspecialchars($item['titel']) ?></strong>
-                    <p class="mededeling-bericht"><?= htmlspecialchars($item['bericht']) ?></p>
+                <div style="background-color: #f0f7ff; border-left: 4px solid #3b82f6; padding: 15px 20px; border-radius: 0 4px 4px 0; font-family: sans-serif;">
+                    <span style="color: #93c5fd; font-size: 12px; display: block; margin-bottom: 5px; font-weight: 500;">
+                        <?= $geformateerdeDatum ?>
+                    </span>
+                    <strong style="color: #1e3a8a; font-size: 15px; display: block; margin-bottom: 2px;">
+                        <?= htmlspecialchars($item['titel']) ?>
+                    </strong>
+                    <p style="margin: 0; color: #1e293b; font-size: 14px; line-height: 1.5; white-space: pre-line;">
+                        <?= htmlspecialchars($item['bericht']) ?>
+                    </p>
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>

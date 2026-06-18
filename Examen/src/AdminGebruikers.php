@@ -312,7 +312,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
 <head>
     <meta charset="UTF-8">
     <title>Beheerderspaneel</title>
-    <link rel="stylesheet" href="css/AD.css">
+    <link rel="stylesheet" href="<?= htmlspecialchars(src_url('css/AD.css'), ENT_QUOTES, 'UTF-8') ?>">
 </head>
 <body>
 

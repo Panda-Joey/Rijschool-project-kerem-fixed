@@ -177,7 +177,7 @@ INSERT INTO `Autos` (`autoID`, `merk`, `type`, `kenteken`, `transmissie`, `brand
 INSERT INTO `instructeurs` (`instructeurID`, `voornaam`, `tussenvoegsel`, `achternaam`, `email`, `wachtwoord`, `telefoon`, `omschrijving`, `rol`, `transmissie`) VALUES
 (10, 'Henk', NULL, 'De Vries', 'henk@rijschooleend.nl', '$2y$10$oTCSp7GRKlyBeS2Ptn69iOEIlwfShKpBs5HwXHrxmmjbmAC2xo3lW', '0612345678', 'Ervaren instructeur voor schakelauto\'s.', 'instructeur', 'schakel'),
 (11, 'Anja', 'van', 'Dijk', 'anja@rijschooleend.nl', '$2y$10$oTCSp7GRKlyBeS2Ptn69iOEIlwfShKpBs5HwXHrxmmjbmAC2xo3lW', '0623456789', 'Specialist in faalangst en automaatrijden.', 'instructeur', 'automaat'),
-(12, 'Mark', NULL, 'Bakker', 'mark@rijschooleend.nl', '$2y$10$oTCSp7GRKlyBeS2Ptn69iOEIlwfShKpBs5HwXHrxmmjbmAC2xo3lW', '0634567890', 'Eigenaar en hoofd administratie.', 'admin', 'beide');
+(12, 'Mark', NULL, 'Bakker', 'mark@rijschooleend.nl', '$2y$10$oTCSp7GRKlyBeS2Ptn69iOEIlwfShKpBs5HwXHrxmmjbmAC2xo3lW', '0634567890', 'Instructeur schakel en automaat.', 'instructeur', 'beide');
 
 INSERT INTO `instructeur_auto` (`instructeurID`, `autoID`) VALUES
 (10, 3),
