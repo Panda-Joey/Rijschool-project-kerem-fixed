@@ -84,7 +84,7 @@ $slagingspercentage = $row['slagingspercentage'];
 $stmtMededelingen = $conn->prepare("
     SELECT titel, bericht, datum_gemaakt 
     FROM meldingen 
-    WHERE ontvanger_type = ? OR ontvanger_type = 'admin' 
+    WHERE ontvanger_type = 'admin' 
     ORDER BY datum_gemaakt DESC 
     LIMIT 5
 ");

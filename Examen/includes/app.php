@@ -89,6 +89,7 @@ $roleByPage = [
     'beschikbaarheid.php'      => 'instructeur',
     'afwezigheid.php'          => 'instructeur',
     'examen.php'               => 'instructeur',
+    'overzichtStudent.php'     => 'instructeur',
     'AdminDashboard.php'       => 'admin',
     'AdminGebruikers.php'      => 'admin',
     'AdminWagenpark.php'       => 'admin',

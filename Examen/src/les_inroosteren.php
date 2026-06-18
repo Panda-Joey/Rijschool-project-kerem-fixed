@@ -639,7 +639,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="btn-row">
                     <button type="button" class="btn-terug" onclick="resetFormulier()">← Terug</button>
                     <button type="submit" class="btn-opslaan">
-                        <?= $rol === 'instructeur' ? '📋 Les inplannen' : '✅ Les aanvragen' ?>
+                        <?= $rol === 'instructeur' ? '📋 Les inplannen' : '✅ Les inplannen' ?>
                     </button>
                 </div>
             </form>
