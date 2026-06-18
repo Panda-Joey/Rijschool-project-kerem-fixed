@@ -72,11 +72,14 @@ $doelgroepRol = ($rol === 'instructeur') ? 'instructeur' : 'student';
 $stmtMededelingen = $conn->prepare("
     SELECT titel, bericht, datum_gemaakt 
     FROM meldingen 
-    WHERE ontvanger_type = ? OR ontvanger_type = 'iedereen'
+    WHERE (ontvanger_type = ? AND ontvanger_id = ?) 
+       OR (ontvanger_type = ? AND ontvanger_id IS NULL)
+       OR ontvanger_type = 'iedereen'
     ORDER BY datum_gemaakt DESC 
     LIMIT 5
 ");
-$stmtMededelingen->bind_param("s", $doelgroepRol);
+// We binden: $doelgroepRol (bvb 'student'), $userID (het ID), en nogmaals $doelgroepRol (voor de 'alle_studenten' / 'alle_instructeurs' logiek indien van toepassing, of simpelweg herhalen)
+$stmtMededelingen->bind_param("sis", $doelgroepRol, $userID, $doelgroepRol);
 $stmtMededelingen->execute();
 $resMededelingen = $stmtMededelingen->get_result();
 

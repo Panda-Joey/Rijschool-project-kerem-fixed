@@ -1,8 +1,14 @@
 <?php 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 if (!isset($_SESSION['userID']) || $_SESSION['rol'] !== 'instructeur') {
     header("Location: /login.php");
     exit;
 }
+
+$instructeurID = $_SESSION['instructeurID'] ?? 0;
 
 $instructeurID = $_SESSION['instructeurID'] ?? 0;
 
@@ -41,7 +47,7 @@ if ($conn->connect_error) {
     
     <h2>Mijn Studenten Overzicht</h2>
 
-    <form method="GET" class="filter-form">
+    <!-- <form method="GET" class="filter-form">
         <label for="filter_status">Kies je gebruiker:</label>
         <select name="gebruiker_filter" id="filter_status">
             <option value="">Alle eigen studenten</option>
@@ -49,7 +55,7 @@ if ($conn->connect_error) {
             <option value="niewe-studenten" <?= ($_GET['gebruiker_filter'] ?? '') === 'niewe-studenten' ? 'selected' : '' ?>>Aangemelden studenten</option>
         </select>
         <button type="submit">Filter</button>
-    </form>
+    </form> -->
 
     <table border="1">
         <thead>
@@ -76,8 +82,8 @@ if ($conn->connect_error) {
 
         if ($statusFilter === 'actieve-studenten') {
             $query = $baseQuery . " AND s.status = 'actief'";
-        } elseif ($statusFilter === 'niewe-studenten') {
-            $query = $baseQuery . " AND s.status = 'pending'";
+        // } elseif ($statusFilter === 'niewe-studenten') {
+        //     $query = $baseQuery . " AND s.status = 'pending'";
         } else {
             $query = $baseQuery;
         }
