@@ -14,8 +14,10 @@
 require_once dirname(__DIR__) . '/includes/database.php';
 require_once dirname(__DIR__) . '/includes/autos.php';
 require_once dirname(__DIR__) . '/includes/lesvoorkeur.php';
+require_once dirname(__DIR__) . '/includes/instructeur_afwezigheid.php';
 
 $conn = getDbConnection();
+ensureInstructeurAfwezigheidSchema($conn);
 
 /* --- Sessievariabelen --- */
 $rol    = $_SESSION['rol'];
@@ -57,7 +59,8 @@ if ($rol === 'student') {
     }
 
     $r = $conn->query("
-        SELECT i.instructeurID, i.voornaam, i.achternaam, i.omschrijving, i.transmissie,
+        SELECT i.instructeurID, i.voornaam, i.achternaam, i.omschrijving, i.transmissie, i.afwezigheid,
+               i.afwezig_van, i.afwezig_tot,
                a.autoID, a.merk, a.type, a.kenteken, a.transmissie AS autoTransmissie,
                a.beschikbaar, a.statusReden
         FROM studenten_has_instructeurs shi
@@ -238,6 +241,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$fout) {
+        $afwRes = $conn->query("SELECT afwezigheid, afwezig_van, afwezig_tot FROM instructeurs WHERE instructeurID = $instrID LIMIT 1");
+        if ($afwRes && ($afwRow = $afwRes->fetch_assoc()) && instructeurIsAfwezigOpDatum($afwRow, $datum)) {
+            $periode = '';
+            if (!empty($afwRow['afwezig_van']) && !empty($afwRow['afwezig_tot'])) {
+                $periode = ' (afwezig t/m ' . date('d-m-Y', strtotime($afwRow['afwezig_tot'])) . ')';
+            }
+            $fout = 'De instructeur is niet beschikbaar op deze datum' . $periode . '.';
+        }
+    }
+
+    if (!$fout) {
         $dNm = $dagNamen[date('N', strtotime($datum))];
 
         /* Beschikbaarheid van instructeur op die dag */
@@ -282,7 +296,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($overlap) {
                     $eindStr = sprintf('%02d:%02d', intdiv($sMin + 120, 60), ($sMin + 120) % 60);
-                    $fout    = "Overlap: instructeur heeft al een les die botst met $tijd–$eindStr.";
+                    $fout    = "Overlap: instructeur heeft al een les die botst met {$tijd}–{$eindStr}.";
 
                 } elseif ($aantalLessen >= $bRow['maxLessen']) {
                     $fout = "De instructeur heeft al het maximale aantal lessen op $datum.";
@@ -452,6 +466,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php if (!$gekoppeldeInstructeur): ?>
                 <div class="geen-lessen">Je hebt nog geen vaste instructeur. Neem contact op met de rijschool.</div>
             <?php else:
+                if (instructeurIsAfwezigOpDatum($gekoppeldeInstructeur, $gekozenDatum)):
+                    $tot = $gekoppeldeInstructeur['afwezig_tot'] ?? '';
+                    $periodeTekst = $tot ? ' tot ' . date('d-m-Y', strtotime($tot)) : '';
+                ?>
+                <div class="geen-lessen">Je instructeur is afwezig op deze datum<?= htmlspecialchars($periodeTekst) ?>. Kies een andere dag of wacht tot de instructeur weer beschikbaar is.</div>
+            <?php else:
                 $iID  = (int) $gekoppeldeInstructeur['instructeurID'];
                 $data = $instrData[$iID] ?? ['beschikbaar' => false, 'slots' => [], 'nogVrij' => 0];
                 $vol  = empty($data['beschikbaar']) || ($data['nogVrij'] ?? 0) <= 0;
@@ -493,7 +513,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     <?php endif; ?>
                 </div>
-            <?php endif; ?>
+            <?php endif; endif; ?>
         </div>
 
         <?php endif; ?>

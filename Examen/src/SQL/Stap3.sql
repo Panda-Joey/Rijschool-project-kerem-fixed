@@ -12,7 +12,7 @@ INSERT INTO `Autos` (`autoID`, `merk`, `type`, `kenteken`, `transmissie`, `brand
 INSERT INTO `instructeurs` (`instructeurID`, `voornaam`, `tussenvoegsel`, `achternaam`, `email`, `wachtwoord`, `telefoon`, `omschrijving`, `rol`) VALUES
 (10, 'Henk', NULL, 'De Vries', 'henk@rijschooleend.nl', '$2y$10$abcdefghijklmnopqrstuv', '0612345678', 'Ervaren instructeur voor schakelauto\'s.', 'instructeur'),
 (11, 'Anja', 'van', 'Dijk', 'anja@rijschooleend.nl', '$2y$10$abcdefghijklmnopqrstuv', '0623456789', 'Specialist in faalangst en automaatrijden.', 'instructeur'),
-(12, 'Mark', NULL, 'Bakker', 'mark@rijschooleend.nl', '$2y$10$abcdefghijklmnopqrstuv', '0634567890', 'Eigenaar en hoofd administratie.', 'admin');
+(12, 'Mark', NULL, 'Bakker', 'mark@rijschooleend.nl', '$2y$10$abcdefghijklmnopqrstuv', '0634567890', 'Instructeur schakel en automaat.', 'instructeur');
 
 -- 3. Dummy data voor `beschikbaarheid`
 -- Heeft wel AUTO_INCREMENT voor beschikbaarheidID

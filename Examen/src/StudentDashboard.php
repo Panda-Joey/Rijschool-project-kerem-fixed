@@ -72,11 +72,15 @@ $doelgroepRol = ($rol === 'instructeur') ? 'instructeur' : 'student';
 $stmtMededelingen = $conn->prepare("
     SELECT titel, bericht, datum_gemaakt 
     FROM meldingen 
-    WHERE ontvanger_type = ? OR ontvanger_type = 'iedereen'
+    WHERE (ontvanger_type = ? AND ontvanger_id = ?) 
+       OR (ontvanger_type = ? AND ontvanger_id IS NULL)
+       OR ontvanger_type = 'iedereen'
+       OR ontvanger_type = 'alle_studenten'
     ORDER BY datum_gemaakt DESC 
     LIMIT 5
 ");
-$stmtMededelingen->bind_param("s", $doelgroepRol);
+// We binden: $doelgroepRol (bvb 'student'), $userID (het ID), en nogmaals $doelgroepRol (voor de 'alle_studenten' / 'alle_instructeurs' logiek indien van toepassing, of simpelweg herhalen)
+$stmtMededelingen->bind_param("sis", $doelgroepRol, $userID, $doelgroepRol);
 $stmtMededelingen->execute();
 $resMededelingen = $stmtMededelingen->get_result();
 
@@ -254,6 +258,12 @@ $totaalUren   = $totaalLessen * 2; // Elke les duurt 2 uur
                     <h4><?= htmlspecialchars($les['doel']) ?></h4>
                     <p>📍 Ophalen: <strong><?= htmlspecialchars($les['ophaalLocatie']) ?></strong></p>
                     <p>📝 <?= htmlspecialchars($les['onderwerpen']) ?></p>
+                    <?php if (!empty($les['opmerkingen'])): ?>
+                        <p style="margin-top:8px;">
+                            <strong>📝 Opmerking instructeur:</strong><br>
+                            <?= nl2br(htmlspecialchars($les['opmerkingen'])) ?>
+                        </p>
+                    <?php endif; ?>
 
                     <?php if ($rol === 'instructeur'): ?>
                         <p>👤 Student:

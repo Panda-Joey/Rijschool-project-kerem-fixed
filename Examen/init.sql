@@ -35,6 +35,8 @@ CREATE TABLE `instructeurs` (
   `rol` ENUM('admin', 'instructeur') NOT NULL DEFAULT 'instructeur',
   `transmissie` ENUM('schakel', 'automaat', 'beide') NOT NULL DEFAULT 'schakel',
   `afwezigheid` ENUM('beschikbaar', 'niet') NOT NULL DEFAULT 'beschikbaar',
+  `afwezig_van` DATE NULL DEFAULT NULL,
+  `afwezig_tot` DATE NULL DEFAULT NULL,
   PRIMARY KEY (`instructeurID`)
 ) ENGINE=InnoDB;
 
@@ -142,7 +144,7 @@ CREATE TABLE `meldingen` (
   `meldingID` INT(11) NOT NULL AUTO_INCREMENT,
   `titel` VARCHAR(100) NOT NULL,
   `bericht` VARCHAR(500) NOT NULL,
-  `ontvanger_type` ENUM('iedereen', 'alle_studenten', 'alle_instructeurs', 'student', 'instructeur') NOT NULL,
+  `ontvanger_type` ENUM('iedereen', 'alle_studenten', 'alle_instructeurs', 'student', 'instructeur', 'admin') NOT NULL,
   `ontvanger_id` INT(11) NULL DEFAULT NULL,
   `datum_gemaakt` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`meldingID`)
@@ -175,7 +177,7 @@ INSERT INTO `Autos` (`autoID`, `merk`, `type`, `kenteken`, `transmissie`, `brand
 INSERT INTO `instructeurs` (`instructeurID`, `voornaam`, `tussenvoegsel`, `achternaam`, `email`, `wachtwoord`, `telefoon`, `omschrijving`, `rol`, `transmissie`) VALUES
 (10, 'Henk', NULL, 'De Vries', 'henk@rijschooleend.nl', '$2y$10$oTCSp7GRKlyBeS2Ptn69iOEIlwfShKpBs5HwXHrxmmjbmAC2xo3lW', '0612345678', 'Ervaren instructeur voor schakelauto\'s.', 'instructeur', 'schakel'),
 (11, 'Anja', 'van', 'Dijk', 'anja@rijschooleend.nl', '$2y$10$oTCSp7GRKlyBeS2Ptn69iOEIlwfShKpBs5HwXHrxmmjbmAC2xo3lW', '0623456789', 'Specialist in faalangst en automaatrijden.', 'instructeur', 'automaat'),
-(12, 'Mark', NULL, 'Bakker', 'mark@rijschooleend.nl', '$2y$10$oTCSp7GRKlyBeS2Ptn69iOEIlwfShKpBs5HwXHrxmmjbmAC2xo3lW', '0634567890', 'Eigenaar en hoofd administratie.', 'admin', 'beide');
+(12, 'Mark', NULL, 'Bakker', 'mark@rijschooleend.nl', '$2y$10$oTCSp7GRKlyBeS2Ptn69iOEIlwfShKpBs5HwXHrxmmjbmAC2xo3lW', '0634567890', 'Instructeur schakel en automaat.', 'instructeur', 'beide');
 
 INSERT INTO `instructeur_auto` (`instructeurID`, `autoID`) VALUES
 (10, 3),
@@ -210,8 +212,8 @@ INSERT INTO `studenten_has_instructeurs` (`studentID`, `instructeurID`) VALUES
 (3, 11);
 
 INSERT INTO `meldingen` (`titel`, `bericht`, `ontvanger_type`, `ontvanger_id`) VALUES
-('Welkom!', 'Welkom op het rijschoolportaal. Bekijk je lessen en plan nieuwe in.', 'alle_studenten', NULL),
-('Team update', 'Controleer regelmatig je rooster en beschikbaarheid.', 'alle_instructeurs', NULL),
+('Welkom!', 'Welkom op het rijschoolportaal. Bekijk je lessen en plan nieuwe in.', 'student', NULL),
+('Team update', 'Controleer regelmatig je rooster en beschikbaarheid.', 'instructeur', NULL),
 ('Algemene mededeling', 'De rijschool is gesloten op feestdagen.', 'iedereen', NULL);
 
 INSERT INTO `lessen` (`lesDatum`, `lestijd`, `ophaalLocatie`, `doel`, `onderwerpen`, `studentID`, `instructeurID`, `autoID`, `vervallen`, `redenWijzig`, `redenVervalt`) VALUES

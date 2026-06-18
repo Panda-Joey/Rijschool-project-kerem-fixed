@@ -18,7 +18,7 @@ const DEMO_USERS = [
     // userID = id in database (init.sql)
     'leerling@rijschool.nl'    => ['role' => 'leerling',    'userID' => 1],
     'instructeur@rijschool.nl' => ['role' => 'instructeur', 'userID' => 10],
-    'eigenaar@rijschool.nl'    => ['role' => 'eigenaar',    'userID' => 12],
+    'eigenaar@rijschool.nl'    => ['role' => 'eigenaar',    'userID' => 13],
 ];
 
 // Zet op false vóór livegang

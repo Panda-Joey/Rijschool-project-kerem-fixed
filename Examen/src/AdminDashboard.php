@@ -7,9 +7,6 @@ $adminNaam = $_SESSION['naam'] ?? 'Admin';
 $message = '';
 $messageType = '';
 
-
-$adminNaam = $_SESSION['naam'] ?? 'Admin';
-
 // aantal actieve leerlingen
 $sql = "SELECT COUNT(*) AS totaal FROM studenten WHERE status = 'actief'";
 $result = $conn->query($sql);
@@ -91,7 +88,6 @@ $stmtMededelingen = $conn->prepare("
     ORDER BY datum_gemaakt DESC 
     LIMIT 5
 ");
-$stmtMededelingen->bind_param("s", $doelgroepRol);
 $stmtMededelingen->execute();
 $resMededelingen = $stmtMededelingen->get_result();
 
@@ -108,7 +104,7 @@ $stmtMededelingen->close();
 <head>
     <meta charset="UTF-8">
     <title>Beheerderspaneel</title>
-    <link rel="stylesheet" href="css/AD.css">
+    <link rel="stylesheet" href="<?= htmlspecialchars(src_url('css/AD.css'), ENT_QUOTES, 'UTF-8') ?>">
 </head>
 <body>
 
@@ -155,6 +151,8 @@ $stmtMededelingen->close();
 width: 100%;
 margin: 0 auto 25px auto; ">
     
+<div class="mededelingen-container" style="width: 95%; max-width: 1100px; margin: 40px auto 25px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); border-radius: 8px; overflow: hidden; border: 1px solid #1e293b; background: #fff;">
+
     <div style="background-color: #1e293b; color: #ffffff; padding: 15px 20px; display: flex; align-items: center; gap: 10px;">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ffffff;">
             <circle cx="12" cy="12" r="10"></circle>
@@ -168,8 +166,7 @@ margin: 0 auto 25px auto; ">
         <?php if (empty($mededelingen)): ?>
             <p style="color: #6b7280; font-style: italic; margin: 0; font-family: sans-serif;">Er zijn momenteel geen actuele mededelingen.</p>
         <?php else: ?>
-            <?php foreach ($mededelingen as $item): 
-                // Datum mooi formatteren naar NL stijl (bijv: 12 mei 2026)
+            <?php foreach ($mededelingen as $item):
                 $datumMaanden = [1=>"januari", 2=>"februari", 3=>"maart", 4=>"april", 5=>"mei", 6=>"juni", 7=>"juli", 8=>"augustus", 9=>"september", 10=>"oktober", 11=>"november", 12=>"december"];
                 $time = strtotime($item['datum_gemaakt']);
                 $dag = date('j', $time);

@@ -23,17 +23,66 @@ $les = $lesResult->fetch_assoc();
 
 // ── Verwerk formulier ────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $reden = trim($conn->real_escape_string($_POST['reden'] ?? ''));
+    $reden = trim($_POST['reden'] ?? '');
 
     if ($reden === '') {
         $fout = "Vul een reden in voor het annuleren van de les.";
     } else {
-        $conn->query("
-            UPDATE lessen
-            SET vervallen    = 1,
-                redenVervalt = '$reden'
-            WHERE lesID = $lesID
+        // Veilig wegschrijven via een prepared statement
+        $stmtUpdate = $conn->prepare("
+            UPDATE lessen 
+            SET vervallen = 1, redenVervalt = ? 
+            WHERE lesID = ?
         ");
+        $stmtUpdate->bind_param("si", $reden, $lesID);
+        $stmtUpdate->execute();
+        $stmtUpdate->close();
+
+        // Gemeenschappelijke variabelen voor de notificaties
+        $lesDatum = date('d-m-Y', strtotime($les['lesDatum']));
+        $lesTijd  = substr($les['lestijd'], 0, 5);
+
+        // ── Situatie A: De STUDENT annuleert de les ──
+        if ($rol === 'student') {
+            $instructeurID = intval($les['instructeurID']);
+            
+            // Pak de naam van de ingelogde student uit de sessie
+            $studentNaam = !empty($_SESSION['naam']) ? $_SESSION['naam'] : 'Een student'; 
+
+            // De instructeur ziet nu exact welke leerling heeft geannuleerd
+            $titel   = "Les geannuleerd door leerling";
+            $bericht = "Leerling $studentNaam heeft de les op $lesDatum om $lesTijd geannuleerd.\nReden: $reden";
+            $type    = "instructeur";
+            $doelID  = $instructeurID;
+
+            $stmtMelding = $conn->prepare("
+                INSERT INTO meldingen (titel, bericht, ontvanger_type, ontvanger_id, datum_gemaakt) 
+                VALUES (?, ?, ?, ?, NOW())
+            ");
+            $stmtMelding->bind_param("sssi", $titel, $bericht, $type, $doelID);
+            $stmtMelding->execute();
+            $stmtMelding->close();
+        }
+        
+        // ── Situatie B: De INSTRUCTEUR annuleert de les ──
+        elseif ($rol === 'instructeur') {
+            $studentID       = intval($les['studentID']);
+            $instructeurNaam = !empty($_SESSION['naam']) ? $_SESSION['naam'] : ($les['voornaam'] . ' ' . $les['achternaam']);
+
+            $titel   = "Les geannuleerd door instructeur";
+            $bericht = "Helaas heeft je instructeur ($instructeurNaam) de les op $lesDatum om $lesTijd geannuleerd.\nReden: $reden";
+            $type    = "student";
+            $doelID  = $studentID;
+
+            $stmtMelding = $conn->prepare("
+                INSERT INTO meldingen (titel, bericht, ontvanger_type, ontvanger_id, datum_gemaakt) 
+                VALUES (?, ?, ?, ?, NOW())
+            ");
+            $stmtMelding->bind_param("sssi", $titel, $bericht, $type, $doelID);
+            $stmtMelding->execute();
+            $stmtMelding->close();
+        }
+
         header("Location: index.php?maand=$maand");
         exit;
     }

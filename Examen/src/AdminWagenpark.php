@@ -72,7 +72,7 @@ $benzineCount = count($autos) - $elektrischCount;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wagenpark — Admin</title>
-    <link rel="stylesheet" href="css/AD.css">
+    <link rel="stylesheet" href="<?= htmlspecialchars(src_url('css/AD.css'), ENT_QUOTES, 'UTF-8') ?>">
 </head>
 <body>
 

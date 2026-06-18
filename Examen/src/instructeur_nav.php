@@ -1,7 +1,7 @@
 <?php
 /**
  * Gedeelde header + navigatie voor instructeurpagina's.
- * Zet vóór include: $navActief = 'dashboard'|'kalender'|'rooster'|'profiel'|'afwezigheid'|'wagenpark'
+ * Zet vóór include: $navActief = 'dashboard'|'kalender'|'rooster'|'profiel'|'afwezigheid'|'wagenpark'|'examen'
  * Optioneel: $paginaLabel (ondertitel onder de naam)
  */
 $naam        = $_SESSION['naam'] ?? '';
@@ -13,6 +13,7 @@ $navItems = [
     ['id' => 'kalender',    'label' => 'Kalender',      'href' => 'kalender.php'],
     ['id' => 'studenten',   'label' => 'Mijn Studenten', 'href' => 'overzichtStudent.php'],
     ['id' => 'rooster',     'label' => 'Rooster',       'href' => 'beschikbaarheid.php'],
+    ['id' => 'examen',      'label' => 'Examen',        'href' => 'examen.php'],
     ['id' => 'profiel',     'label' => 'Profiel',       'href' => 'Profieli.php'],
     ['id' => 'afwezigheid', 'label' => 'Meld Afwezig',  'href' => 'afwezigheid.php', 'alert' => true],
     ['id' => 'wagenpark',   'label' => 'Wagenpark',     'href' => 'Wagenpark.php'],
