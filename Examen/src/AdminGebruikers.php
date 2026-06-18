@@ -12,6 +12,19 @@ while ($row = $pakketResult->fetch_assoc()) {
     $pakketten[] = $row;
 }
 
+$instructeurs = [];
+
+$result = $conn->query("
+SELECT instructeurID,
+CONCAT(voornaam,' ',achternaam) AS naam
+FROM instructeurs
+ORDER BY voornaam
+");
+
+while ($row = $result->fetch_assoc()) {
+    $instructeurs[] = $row;
+}
+
 if (isset($_POST['toevoegen'])) {
     $rol           = $_POST['add_rol'] ?? 'student';
     $voornaam      = trim($_POST['add_voornaam'] ?? '');
@@ -130,6 +143,7 @@ if (isset($_POST['toevoegen'])) {
 if (isset($_POST['bewerken'])) {
     $rol           = $_POST['rol'] ?? 'student';
     $userID        = (int) ($_POST['studentID'] ?? 0);
+    $vasteInstructeur = (int)($_POST['vaste_instructeur'] ?? 0);
     $voornaam      = trim($_POST['voornaam'] ?? '');
     $tussenvoegsel = trim($_POST['tussenvoegsel'] ?? '');
     $achternaam    = trim($_POST['achternaam'] ?? '');
@@ -185,8 +199,46 @@ if (isset($_POST['bewerken'])) {
                 );
             }
 
+            if ($vasteInstructeur > 0) {
+
+            $insert = $conn->prepare("
+             INSERT INTO studenten_has_instructeurs
+             (studentID,instructeurID)
+             VALUES (?,?)
+             ");
+
+             $insert->bind_param("ii", $userID, $vasteInstructeur);
+            }
+
             $stmt->execute();
             $stmt->close();
+
+            $delete = $conn->prepare("
+              DELETE FROM studenten_has_instructeurs
+              WHERE studentID=?
+              ");
+             $delete->bind_param("i", $userID);
+             $delete->execute();
+             $delete->close();
+
+            if ($vasteInstructeur > 0) {
+
+             $insert = $conn->prepare("
+             INSERT INTO studenten_has_instructeurs
+             (studentID,instructeurID)
+             VALUES (?,?)
+             ");
+
+              $insert->bind_param(
+              "ii",
+             $userID,
+             $vasteInstructeur
+            );
+
+    $insert->execute();
+    $insert->close();
+}
+
         } else {
             if ($wachtwoord !== '') {
                 $hash = password_hash($wachtwoord, PASSWORD_DEFAULT);
@@ -333,6 +385,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                     <th>Telefoon</th>
                     <th>Lespakket</th>
                     <th>actief</th>
+                    <th>Vaste instructeur</th>
                     <th>beperking</th>
                     <th>omschrijving</th>
                     <th>Acties</th>
@@ -343,25 +396,73 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
             $statusFilter = $_GET['gebruiker_filter'] ?? '';
 
             if ($statusFilter === 'actieve-studenten') {
-                $query = "SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, s.omschrijving, l.naam AS lespakket
-                          FROM studenten s
-                          LEFT JOIN student_lespakket sl ON s.studentID = sl.studentID
-                          LEFT JOIN lespakket l ON sl.idlespakket = l.idlespakket
-                          WHERE s.status = 'actief'";
+                $query = "
+                        SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, s.omschrijving,
+                        l.naam AS lespakket,
+                        i.instructeurID,
+                        CONCAT(i.voornaam,' ',i.achternaam) AS vasteInstructeur
+                        FROM studenten s
+                        LEFT JOIN student_lespakket sl
+                        ON s.studentID = sl.studentID
+
+                        LEFT JOIN lespakket l
+                        ON sl.idlespakket = l.idlespakket
+
+                        LEFT JOIN studenten_has_instructeurs shi
+                        ON s.studentID = shi.studentID
+                        LEFT JOIN instructeurs i
+                        ON shi.instructeurID = i.instructeurID
+                        WHERE s.status = 'actief'";
             } elseif ($statusFilter === 'niewe-studenten') {
-                $query = "SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, s.omschrijving, l.naam AS lespakket
+                $query = "
+                          SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, s.omschrijving,
+                          l.naam AS lespakket,
+                          i.instructeurID,
+                          CONCAT(i.voornaam,' ',i.achternaam) AS vasteInstructeur
                           FROM studenten s
-                          LEFT JOIN student_lespakket sl ON s.studentID = sl.studentID
-                          LEFT JOIN lespakket l ON sl.idlespakket = l.idlespakket
+                          LEFT JOIN student_lespakket sl
+                          ON s.studentID = sl.studentID
+
+                          LEFT JOIN lespakket l
+                          ON sl.idlespakket = l.idlespakket
+
+                           LEFT JOIN studenten_has_instructeurs shi
+                          ON s.studentID = shi.studentID
+                          LEFT JOIN instructeurs i
+                          ON shi.instructeurID = i.instructeurID
                           WHERE s.status = 'pending'";
             } elseif ($statusFilter === 'instructeurs') {
                 $query = 'SELECT instructeurID, voornaam, afwezigheid, tussenvoegsel, achternaam, email, telefoon, omschrijving FROM instructeurs';
             } else {
-                $query = "SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, s.omschrijving, l.naam AS lespakket
-                          FROM studenten s
-                          LEFT JOIN student_lespakket sl ON s.studentID = sl.studentID
-                          LEFT JOIN lespakket l ON sl.idlespakket = l.idlespakket";
-            }
+                  $query = "
+    SELECT
+        s.studentID,
+        s.status,
+        s.voornaam,
+        s.tussenvoegsel,
+        s.achternaam,
+        s.email,
+        s.telefoon,
+        s.beperking,
+        s.omschrijving,
+        l.naam AS lespakket,
+        i.instructeurID,
+        CONCAT(i.voornaam, ' ', i.achternaam) AS vasteInstructeur
+
+    FROM studenten s
+
+    LEFT JOIN student_lespakket sl
+        ON s.studentID = sl.studentID
+
+    LEFT JOIN lespakket l
+        ON sl.idlespakket = l.idlespakket
+
+    LEFT JOIN studenten_has_instructeurs shi
+        ON s.studentID = shi.studentID
+
+    LEFT JOIN instructeurs i
+        ON shi.instructeurID = i.instructeurID
+    ";}
 
             $result = $conn->query($query);
 
@@ -370,7 +471,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
             } elseif ($result->num_rows > 0) {
                 while ($row = $result->fetch_assoc()) {
                     $id = $row['studentID'] ?? $row['instructeurID'] ?? 0;
-                    $huidigeRol = isset($row['instructeurID']) ? 'instructeur' : 'student';
+                    $huidigeRol = ($statusFilter === 'instructeurs') ? 'instructeur' : 'student';
                     $volledigeNaam = trim(($row['voornaam'] ?? '') . ' ' . ($row['tussenvoegsel'] ?? '') . ' ' . ($row['achternaam'] ?? ''));
 
                     echo '<tr>';
@@ -378,6 +479,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                     echo '<td>' . htmlspecialchars($row['email'] ?? '') . '</td>';
                     echo '<td>' . htmlspecialchars($row['telefoon'] ?? '') . '</td>';
                     echo '<td>' . htmlspecialchars($row['lespakket'] ?? '-') . '</td>';
+                    
 
                    if ($huidigeRol === 'instructeur') {
                       $status = $row['afwezigheid'] ?? 'onbekend';
@@ -394,6 +496,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                      echo '<td>' . ($dbStatus === 'actief' ? 'Ja' : 'Nee') . '</td>';
                     }
 
+                    echo '<td>' . htmlspecialchars($row['vasteInstructeur'] ?? '-') . '</td>';
+
                     echo '<td>' . (isset($row['beperking']) && $row['beperking'] == 1 ? 'Ja' : 'Nee') . '</td>';
                     echo '<td>' . htmlspecialchars($row['omschrijving'] ?? '-') . '</td>';
                     echo '<td>';
@@ -407,6 +511,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                         'email' => $row['email'] ?? '',
                         'telefoon' => $row['telefoon'] ?? '',
                         'status' => $row['status'] ?? 'pending',
+                        'vasteInstructeur' => $row['instructeurID'] ?? '',
                     ]) . ")'>Bewerken</button>";
                     echo "    <a href='AdminGebruikers.php?action=delete&amp;id=" . $id . "' class='btn-delete' onclick='return confirm(\"Weet je zeker dat je dit wilt verwijderen?\");'>Verwijderen</a>";
                     echo '  </div>';
@@ -555,6 +660,25 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                 <input type="text" name="telefoon" id="edit_telefoon">
             </div>
 
+            <div class="modal-form-group"  id="edit_vaste_instructeur_group">
+                <label>Vaste instructeur</label>
+
+                <select name="vaste_instructeur" id="edit_vaste_instructeur">
+
+                <option value="">Geen</option>
+
+                <?php foreach($instructeurs as $ins): ?>
+
+                <option value="<?= $ins['instructeurID'] ?>">
+                <?= htmlspecialchars($ins['naam' ])?>
+                </option>
+
+                <?php endforeach; ?>
+
+                </select>
+
+                </div>
+
             <div class="modal-form-group">
                 <label>Wachtwoord (leeg laten om te behouden):</label>
                 <input type="password" name="wachtwoord" placeholder="Nieuw wachtwoord...">
@@ -594,15 +718,20 @@ function openEditModal(data) {
     document.getElementById('edit_email').value = data.email;
     document.getElementById('edit_telefoon').value = data.telefoon || '';
 
+    if (document.getElementById('edit_vaste_instructeur')) {
+    document.getElementById('edit_vaste_instructeur').value =
+        data.vasteInstructeur || "";
+   }
+
         if (data.rol === 'instructeur') {
         document.getElementById('edit_afwezigheid_group').style.display = 'block';
         document.getElementById('edit_status_group').style.display = 'none';
-
-        document.getElementById('edit_afwezigheid').value =
-            data.afwezigheid || 'beschikbaar';
+        document.getElementById('edit_vaste_instructeur_group').style.display = 'none';
+        document.getElementById('edit_afwezigheid').value = data.afwezigheid || 'beschikbaar';
     } else {
         document.getElementById('edit_status_group').style.display = 'block';
         document.getElementById('edit_afwezigheid_group').style.display = 'none';
+        document.getElementById('edit_vaste_instructeur_group').style.display = 'block';
     }
 
     var statusGroup = document.getElementById('edit_status_group');
