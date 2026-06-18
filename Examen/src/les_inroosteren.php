@@ -3,8 +3,7 @@
    les_inroosteren.php
    Toegankelijk voor zowel studenten als instructeurs.
 
-   STUDENT:  kiest een datum → ziet beschikbare instructeurs
-             → kiest een tijdslot → vult details in
+   STUDENT:  kiest een datum → ziet tijdslots van vaste instructeur → vult details in
    INSTRUCTEUR: kiest een datum → ziet zijn eigen tijdslots
              → kiest een tijdslot → kiest een leerling + details
 
@@ -368,20 +367,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="inrooster-wrap">
 
         <!-- ── STAPPENBALK ──────────────────────────────────────
-             Instructeur: 3 stappen (Datum → Tijdstip → Details)
-             Student:     4 stappen (Datum → Instructeur → Tijdstip → Details)
+             3 stappen: Datum → Tijdstip → Details
         ──────────────────────────────────────────────────────── -->
         <div class="stappen">
             <div class="stap actief" id="stap1"><span class="nr">1</span>Datum</div>
-            <?php if ($rol === 'student'): ?>
-                <div class="stap" id="stap2"><span class="nr">2</span>Instructeur</div>
-            <?php endif; ?>
-            <div class="stap" id="<?= $rol === 'instructeur' ? 'stap2' : 'stap3' ?>">
-                <span class="nr"><?= $rol === 'instructeur' ? '2' : '3' ?></span>Tijdstip
-            </div>
-            <div class="stap" id="<?= $rol === 'instructeur' ? 'stap3' : 'stap4' ?>">
-                <span class="nr"><?= $rol === 'instructeur' ? '3' : '4' ?></span>Details
-            </div>
+            <div class="stap" id="stap2"><span class="nr">2</span>Tijdstip</div>
+            <div class="stap" id="stap3"><span class="nr">3</span>Details</div>
         </div>
 
 
@@ -460,7 +451,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
 
-        <!-- ── STAP 2+3 (STUDENT-MODUS): INSTRUCTEUR + TIJDSLOT ── -->
+        <!-- ── STAP 2 (STUDENT): TIJDSLOTS VASTE INSTRUCTEUR ──── -->
         <?php elseif ($rol === 'student'): ?>
         <div style="margin-bottom:12px;">
             <?php if (!$gekoppeldeInstructeur): ?>
@@ -519,7 +510,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
 
-        <!-- ── STAP 3/4: DETAILFORMULIER ────────────────────────
+        <!-- ── STAP 3: DETAILFORMULIER ────────────────────────
              Verborgen totdat een tijdslot gekozen is.
              Wordt zichtbaar via JS na klikken op een slot-knop.
         ──────────────────────────────────────────────────────── -->
@@ -664,7 +655,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
    ============================================================ */
 
 const rolIsInstructeur = <?= $rol === 'instructeur' ? 'true' : 'false' ?>;
-const aantalStappen    = rolIsInstructeur ? 3 : 4;
+const aantalStappen    = 3;
+const defaultInstrId   = <?= (int) ($rol === 'instructeur' ? $userID : ($gekoppeldeInstructeur['instructeurID'] ?? 0)) ?>;
 
 /**
  * laadPagina — Herlaadt de pagina met de nieuw gekozen datum.
@@ -682,7 +674,7 @@ function laadPagina() {
 function kiesTijdslot(tijd, eind) {
     markeerSlotKnop(tijd);
     toonFormulier(tijd, eind);
-    setStap(rolIsInstructeur ? 2 : 3);
+    setStap(3);
 }
 
 /**
@@ -701,7 +693,7 @@ function kiesTijdslotStudent(iID, instrNaam, tijd, eind) {
 
     markeerSlotKnop(tijd);
     toonFormulier(tijd, eind);
-    setStap(4);
+    setStap(3);
 }
 
 /**
@@ -743,7 +735,7 @@ function resetFormulier() {
     document.querySelectorAll('.instr-kaart').forEach(k => k.classList.remove('gekozen'));
     document.querySelectorAll('.slot-knop').forEach(b => b.classList.remove('actief'));
     document.getElementById('hiddenTijd').value = '';
-    if (!rolIsInstructeur) document.getElementById('hiddenInstr').value = '';
+    document.getElementById('hiddenInstr').value = defaultInstrId || '';
     setStap(1);
 }
 
@@ -768,10 +760,6 @@ function setStap(n) {
 function valideerForm() {
     if (!document.getElementById('hiddenTijd').value) {
         alert('Kies eerst een tijdstip.');
-        return false;
-    }
-    if (!rolIsInstructeur && !document.getElementById('hiddenInstr').value) {
-        alert('Kies eerst een instructeur.');
         return false;
     }
     return true;
