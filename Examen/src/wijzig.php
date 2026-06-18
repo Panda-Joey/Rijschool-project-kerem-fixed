@@ -63,22 +63,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $fout = "Deze instructeur heeft al een les op $nieuweDatum om $nieuweTijd.";
         } else {
             if ($conn->query("
-                UPDATE lessen
-                SET lesDatum='$nieuweDatum', lestijd='$nieuweTijd',
-                    instructeurID=$nieuweInstr, doel='$nieuwDoel', redenWijzig='$reden'
-                WHERE lesID=$lesID
-            ")) {
-                $succes = "Les succesvol bijgewerkt!";
-                $r2 = $conn->query("
-                    SELECT lessen.*, instructeurs.voornaam, instructeurs.achternaam
-                    FROM lessen
-                    JOIN instructeurs ON lessen.instructeurID = instructeurs.instructeurID
-                    WHERE lesID=$lesID
-                ");
-                $les = $r2->fetch_assoc();
-            } else {
-                $fout = "Er ging iets mis bij het opslaan.";
-            }
+    UPDATE lessen
+    SET lesDatum='$nieuweDatum', lestijd='$nieuweTijd',
+        instructeurID=$nieuweInstr, doel='$nieuwDoel', redenWijzig='$reden'
+    WHERE lesID=$lesID
+")) {
+    $succes = "Les succesvol bijgewerkt!";
+
+    // ── STAP 1: Haal de studentID en instructeurID van deze les op ──
+    $lesInfoQuery = $conn->query("SELECT studentID, instructeurID FROM lessen WHERE lesID = $lesID");
+    if ($lesInfoQuery && $lesInfoQuery->num_rows > 0) {
+        $lesData = $lesInfoQuery->fetch_assoc();
+        $studentID = $lesData['studentID'];
+        $actueleInstructeurID = $lesData['instructeurID'];
+
+        // Format de datum en tijd voor het bericht
+        $notificatieDatum = date('d-m-Y', strtotime($nieuweDatum));
+        $notificatieTijd  = substr($nieuweTijd, 0, 5);
+
+        $titel = "Les gewijzigd (Les #$lesID)";
+        $bericht = "De les is verplaatst naar $notificatieDatum om $notificatieTijd uur. Reden: $reden";
+
+        // ── STAP 2: Stuur een melding naar de student ──
+        $stmtStudent = $conn->prepare("INSERT INTO meldingen (titel, bericht, ontvanger_type, ontvanger_id) VALUES (?, ?, 'student', ?)");
+        $stmtStudent->bind_param("ssi", $titel, $bericht, $studentID);
+        $stmtStudent->execute();
+        $stmtStudent->close();
+
+        // ── STAP 3: Stuur een melding naar de instructeur ──
+        $stmtInstr = $conn->prepare("INSERT INTO meldingen (titel, bericht, ontvanger_type, ontvanger_id) VALUES (?, ?, 'instructeur', ?)");
+        $stmtInstr->bind_param("ssi", $titel, $bericht, $actueleInstructeurID);
+        $stmtInstr->execute();
+        $stmtInstr->close();
+    }
+
+    // Bestaande herlaad-code voor de actuele lesinfo
+    $r2 = $conn->query("
+        SELECT lessen.*, instructeurs.voornaam, instructeurs.achternaam
+        FROM lessen
+        JOIN instructeurs ON lessen.instructeurID = instructeurs.instructeurID
+        WHERE lesID=$lesID
+    ");
+    $les = $r2->fetch_assoc();
+} else {
+    $fout = "Er ging iets mis bij het opslaan.";
+}
         }
     }
 }
