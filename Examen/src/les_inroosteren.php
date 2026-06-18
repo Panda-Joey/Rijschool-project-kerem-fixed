@@ -20,7 +20,7 @@ if (!isset($_SESSION['userID'])) {
 }
 
 /* --- Database verbinding --- */
-$conn = new mysqli("mysql", "root", "password", "Eend");
+$conn = new mysqli("127.0.0.1", "root", "password", "Eend");
 if ($conn->connect_error) die("Verbinding mislukt: " . $conn->connect_error);
 
 /* --- Sessievariabelen --- */
@@ -154,20 +154,23 @@ function bouwSlotsVoorInstructeur(mysqli $conn, int $iID, string $datum, string 
         $bezet[] = substr($b['lestijd'], 0, 5);
     }
 
-    /* Stap 3: mogelijke starttijden genereren (stap 30 min, slot + 2u moet binnen eindtijd vallen) */
+    /* Stap 3: mogelijke starttijden genereren.
+       Stap = 120 min (2 uur), zodat elk lesblok exact aansluit op het
+       vorige zonder overlap: 08:00-10:00, 10:00-12:00, 12:00-14:00, ...
+       Dit komt overeen met de vaste 2-uurs-blokken in beschikbaarheid.php. */
     $bMin  = intval(substr($bRow['beginTijd'], 0, 2)) * 60 + intval(substr($bRow['beginTijd'], 3, 2));
     $eMin  = intval(substr($bRow['eindTijd'],  0, 2)) * 60 + intval(substr($bRow['eindTijd'],  3, 2));
     $slots = [];
 
-    for ($m = $bMin; $m + 120 <= $eMin; $m += 30) {
+    for ($m = $bMin; $m + 120 <= $eMin; $m += 120) {
         $startTijd = sprintf('%02d:%02d', intdiv($m, 60), $m % 60);
         $eindTijd  = sprintf('%02d:%02d', intdiv($m + 120, 60), ($m + 120) % 60);
 
-        /* Controleer of dit slot overlapt met een bestaande les */
+        /* Controleer of dit blok overlapt met een bestaande les */
         $overlap = false;
         foreach ($bezet as $b) {
             $bM = intval(substr($b, 0, 2)) * 60 + intval(substr($b, 3, 2));
-            /* Overlap: bestaande les start vóór einde slot EN eindigt na start slot */
+            /* Overlap: bestaande les start vóór einde blok EN eindigt na start blok */
             if ($bM < $m + 120 && $bM + 120 > $m) {
                 $overlap = true;
                 break;
@@ -258,6 +261,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             /* Tijdstip buiten beschikbaarheidvenster? */
             if ($sMin < $bMin || $sMin + 120 > $eMin) {
                 $fout = "Dit tijdstip valt buiten de beschikbaarheid ({$bRow['beginTijd']}–{$bRow['eindTijd']}).";
+
+            } elseif (($sMin - $bMin) % 120 !== 0) {
+                /* Beveiliging: het tijdstip moet exact op een 2-uurs-blok-grens
+                   vallen (08:00, 10:00, 12:00...), niet op een willekeurig
+                   moment ertussenin. Dit voorkomt manipulatie via de browser. */
+                $fout = "Ongeldig tijdstip. Lessen starten altijd op een vast 2-uurs blok vanaf {$bRow['beginTijd']}.";
 
             } else {
                 /* Overlapt het gekozen slot met een bestaande les? */

@@ -4,9 +4,10 @@
    Alleen toegankelijk voor instructeurs.
    Hiermee stelt een instructeur in:
      - Op welke dagen (max 3) hij beschikbaar is
-     - Hoe laat (begintijd en eindtijd)
+     - Begin- en eindtijd, ALLEEN uit vaste 2-uurs-grenzen:
+       08:00, 10:00, 12:00, 14:00, 16:00, 18:00, 20:00
      - Hoeveel lessen hij per dag wil geven (max 6)
-   Elke les duurt 2 uur.
+   Elke les duurt precies 2 uur — geen halve uren.
    ============================================================ */
 
 session_start();
@@ -31,6 +32,11 @@ $instrTransmissie = ($r && $rij = $r->fetch_assoc()) ? $rij['transmissie'] : 'sc
 
 /* --- Mogelijke dagen van de week --- */
 $dagNamen = ['Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag','Zondag'];
+
+/* --- Vaste tijdgrenzen: alleen hele uren, telkens 2 uur uit elkaar.
+       Hieruit kiest de instructeur zijn begin- en eindtijd.
+       Voorbeeld geldige combinatie: begin=08:00, eind=14:00 → 3 lessen mogelijk. --- */
+$vasteTijden = ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'];
 
 /* --- Feedback variabelen --- */
 $succes = "";
@@ -60,16 +66,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $fout = "Je kunt maximaal 3 dagen selecteren.";
 
     } else {
-        /* Verwijder eerst alle oude beschikbaarheid van deze instructeur */
-        $conn->query("DELETE FROM beschikbaarheid WHERE instructeurID = $instrID");
+        /* Verzamel eerst alle nieuwe rijen, valideer ze allemaal,
+           en sla pas op als alles klopt (voorkomt halve updates bij een fout) */
+        $nieuweRijen = [];
 
-        /* Sla elke gekozen dag op */
         foreach ($gekozenDagen as $dag) {
 
-            $dag       = $conn->real_escape_string($dag);
-            $begin     = $conn->real_escape_string($_POST['begin'][$dag] ?? '08:00');
-            $eind      = $conn->real_escape_string($_POST['eind'][$dag]  ?? '18:00');
-            $maxLessen = min(6, max(1, intval($_POST['max'][$dag] ?? 6)));
+            /* Dagnaam moet een geldige, bekende dag zijn (whitelist tegen manipulatie) */
+            if (!in_array($dag, $dagNamen, true)) {
+                $fout = "Ongeldige dag ontvangen.";
+                break;
+            }
+
+            $begin     = $_POST['begin'][$dag] ?? '08:00';
+            $eind      = $_POST['eind'][$dag]  ?? '18:00';
+            $maxLessen = intval($_POST['max'][$dag] ?? 6);
+
+            /* Begin- en eindtijd moeten allebei uit de vaste lijst komen
+               (whitelist tegen manipulatie van halve uren via de browser) */
+            if (!in_array($begin, $vasteTijden, true) || !in_array($eind, $vasteTijden, true)) {
+                $fout = "Ongeldig tijdstip op $dag. Kies alleen uit de vaste tijden.";
+                break;
+            }
 
             /* Begintijd moet voor eindtijd liggen */
             if ($begin >= $eind) {
@@ -77,24 +95,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
             }
 
-            /* Bereken hoeveel 2-uurs lessen passen in het tijdvak */
-            $beginMin = intval(substr($begin, 0, 2)) * 60 + intval(substr($begin, 3, 2));
-            $eindMin  = intval(substr($eind,  0, 2)) * 60 + intval(substr($eind,  3, 2));
-            $maxSlots = floor(($eindMin - $beginMin) / 120);
+            /* Bereken hoeveel volledige 2-uurs lessen passen in het tijdvak.
+               Omdat begin/eind altijd op een 2-uurs grens staan, is dit
+               altijd een geheel getal — geen halve lessen mogelijk. */
+            $beginMin = intval(substr($begin, 0, 2)) * 60;
+            $eindMin  = intval(substr($eind,  0, 2)) * 60;
+            $maxSlots = intdiv($eindMin - $beginMin, 120);
+
+            /* Max lessen moet tussen 1 en het werkelijk aantal passende slots liggen,
+               en mag nooit boven de absolute limiet van 6 komen */
+            $maxLessen = max(1, min(6, $maxSlots, $maxLessen));
 
             if ($maxLessen > $maxSlots) {
                 $fout = "Op $dag passen maximaal $maxSlots lessen van 2 uur in het tijdvak $begin–$eind.";
                 break;
             }
 
-            /* Alles klopt: sla op in de database */
-            $conn->query("
-                INSERT INTO beschikbaarheid (instructeurID, dagNaam, beginTijd, eindTijd, maxLessen)
-                VALUES ($instrID, '$dag', '$begin', '$eind', $maxLessen)
-            ");
+            $nieuweRijen[] = [
+                'dag'       => $dag,
+                'begin'     => $begin,
+                'eind'      => $eind,
+                'maxLessen' => $maxLessen,
+            ];
         }
 
+        /* Alleen opslaan als ALLE dagen geldig waren */
         if (!$fout) {
+            /* Verwijder eerst alle oude beschikbaarheid van deze instructeur */
+            $conn->query("DELETE FROM beschikbaarheid WHERE instructeurID = $instrID");
+
+            foreach ($nieuweRijen as $rij) {
+                $dagEsc   = $conn->real_escape_string($rij['dag']);
+                $beginEsc = $conn->real_escape_string($rij['begin']);
+                $eindEsc  = $conn->real_escape_string($rij['eind']);
+
+                $conn->query("
+                    INSERT INTO beschikbaarheid (instructeurID, dagNaam, beginTijd, eindTijd, maxLessen)
+                    VALUES ($instrID, '$dagEsc', '$beginEsc:00', '$eindEsc:00', {$rij['maxLessen']})
+                ");
+            }
+
             $succes = "Beschikbaarheid opgeslagen!";
         }
     }
@@ -142,19 +182,17 @@ foreach ($huidig as $dag => $info) {
 
 
 /* ============================================================
-   HULPFUNCTIE: tijdOpties()
-   Genereert <option> tags van 07:00 t/m 20:30 in stappen van 30 min.
-   $geselecteerd = de waarde die 'selected' moet zijn.
+   HULPFUNCTIE: vasteTijdOpties()
+   Genereert <option> tags voor ALLEEN de vaste 2-uurs-grenzen:
+   08:00, 10:00, 12:00, 14:00, 16:00, 18:00, 20:00.
+   Geen halve uren — dit is bewust beperkt.
    ============================================================ */
-function tijdOpties(string $geselecteerd = ''): string
+function vasteTijdOpties(array $vasteTijden, string $geselecteerd = ''): string
 {
     $opties = '';
-    for ($uur = 7; $uur <= 20; $uur++) {
-        foreach (['00', '30'] as $minuten) {
-            $tijd    = sprintf('%02d:%s', $uur, $minuten);
-            $select  = ($tijd === $geselecteerd) ? 'selected' : '';
-            $opties .= "<option value='$tijd' $select>$tijd</option>";
-        }
+    foreach ($vasteTijden as $tijd) {
+        $select  = ($tijd === $geselecteerd) ? 'selected' : '';
+        $opties .= "<option value='$tijd' $select>$tijd</option>";
     }
     return $opties;
 }
@@ -170,25 +208,7 @@ function tijdOpties(string $geselecteerd = ''): string
 <body>
 <div class="container">
 
-    <!-- ── HEADER ─────────────────────────────────────────────── -->
-    <div class="dash-header">
-        <div>
-            <h2>📅 Rooster instellen</h2>
-            <span>
-                <?= htmlspecialchars($naam) ?> —
-                <span class="rol-badge badge-instructeur">🎓 Instructeur</span>
-            </span>
-        </div>
-        <a href="logout.php" class="logout-btn">Uitloggen →</a>
-    </div>
-
-    <!-- ── NAVIGATIE ──────────────────────────────────────────── -->
-    <div class="top-buttons">
-        <a href="instructeurdashboard.php"       class="nav-btn">Dashboard</a>
-        <a href="kalender.php"           class="nav-btn">Kalender</a>
-        <div                          class="nav-btn active">Rooster</div>
-        <a href="les_inroosteren.php" class="nav-btn">+ Les inplannen</a>
-    </div>
+    <?php require_once 'nav.php'; ?>
 
     <!-- ── FEEDBACK BERICHTEN ─────────────────────────────────── -->
     <?php if ($succes): ?>
@@ -196,7 +216,7 @@ function tijdOpties(string $geselecteerd = ''): string
     <?php endif; ?>
 
     <?php if ($fout): ?>
-        <div class="fout">⚠️ <?= $fout ?></div>
+        <div class="fout">⚠️ <?= htmlspecialchars($fout) ?></div>
     <?php endif; ?>
 
 
@@ -205,7 +225,10 @@ function tijdOpties(string $geselecteerd = ''): string
 
         <p style="margin-bottom:14px;">
             <strong>Kies maximaal 3 dagen waarop je beschikbaar bent.</strong><br>
-            <span style="font-size:11px;color:#666;">Elke les duurt 2 uur. Stel per dag je begin- en eindtijd in.</span>
+            <span style="font-size:11px;color:#666;">
+                Elke les duurt precies 2 uur, in vaste blokken: 08:00–10:00, 10:00–12:00, 12:00–14:00, 14:00–16:00, 16:00–18:00, 18:00–20:00.
+                Kies hieronder tussen welke tijden je beschikbaar bent.
+            </span>
         </p>
 
         <form method="POST" action="beschikbaarheid.php" onsubmit="return valideer()">
@@ -253,26 +276,27 @@ function tijdOpties(string $geselecteerd = ''): string
             <!-- Instellingen per dag (verschijnt als dag geselecteerd is) -->
             <?php foreach ($dagNamen as $dag):
                 $h   = $huidig[$dag] ?? null;
+                /* Begin/eindtijd als hele uren tonen (geen seconden, geen halve uren) */
                 $beg = $h ? substr($h['beginTijd'], 0, 5) : '08:00';
-                $ein = $h ? substr($h['eindTijd'],  0, 5) : '17:00';
+                $ein = $h ? substr($h['eindTijd'],  0, 5) : '18:00';
                 $max = $h ? $h['maxLessen'] : 3;
             ?>
             <div class="dag-instellingen <?= $h ? 'zichtbaar' : '' ?>" id="inst_<?= $dag ?>">
 
                 <h4>⚙️ <?= $dag ?></h4>
 
-                <!-- Begin- en eindtijd selects naast elkaar -->
+                <!-- Begin- en eindtijd: ALLEEN vaste 2-uurs-grenzen, geen halve uren -->
                 <div class="tijd-rij">
                     <div class="form-group">
                         <label>Begintijd</label>
                         <select name="begin[<?= $dag ?>]" id="begin_<?= $dag ?>" onchange="herbereken('<?= $dag ?>')">
-                            <?= tijdOpties($beg) ?>
+                            <?= vasteTijdOpties($vasteTijden, $beg) ?>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Eindtijd</label>
                         <select name="eind[<?= $dag ?>]" id="eind_<?= $dag ?>" onchange="herbereken('<?= $dag ?>')">
-                            <?= tijdOpties($ein) ?>
+                            <?= vasteTijdOpties($vasteTijden, $ein) ?>
                         </select>
                     </div>
                 </div>
@@ -295,9 +319,9 @@ function tijdOpties(string $geselecteerd = ''): string
                     <div id="maxInfo_<?= $dag ?>" style="font-size:10px;color:#888;margin-top:5px;"></div>
                 </div>
 
-                <!-- Live preview van de beschikbare tijdslots -->
+                <!-- Live preview van de vaste 2-uurs blokken -->
                 <div>
-                    <div style="font-size:11px;color:#555;margin-bottom:5px;">Tijdslots (elke les = 2 uur):</div>
+                    <div style="font-size:11px;color:#555;margin-bottom:5px;">Lesblokken (elk blok = 2 uur, vast):</div>
                     <div class="slot-grid" id="slots_<?= $dag ?>"></div>
                 </div>
 
@@ -320,12 +344,12 @@ function tijdOpties(string $geselecteerd = ''): string
         <h3>📋 Jouw huidige beschikbaarheid</h3>
 
         <?php foreach ($huidig as $dag => $info):
-            /* Genereer alle 2-uurs slots voor deze dag */
+            /* Genereer de vaste 2-uurs blokken voor deze dag (stap = 2 uur, niet 30 min) */
             $slots    = [];
-            $beginMin = intval(substr($info['beginTijd'], 0, 2)) * 60 + intval(substr($info['beginTijd'], 3, 2));
-            $eindMin  = intval(substr($info['eindTijd'],  0, 2)) * 60 + intval(substr($info['eindTijd'],  3, 2));
-            for ($m = $beginMin; $m + 120 <= $eindMin; $m += 30) {
-                $slots[] = sprintf('%02d:%02d', intdiv($m, 60), $m % 60);
+            $beginMin = intval(substr($info['beginTijd'], 0, 2)) * 60;
+            $eindMin  = intval(substr($info['eindTijd'],  0, 2)) * 60;
+            for ($m = $beginMin; $m + 120 <= $eindMin; $m += 120) {
+                $slots[] = sprintf('%02d:00', intdiv($m, 60));
             }
             $bezet = $bezetteTijdenPerDag[$dag] ?? [];
         ?>
@@ -340,7 +364,7 @@ function tijdOpties(string $geselecteerd = ''): string
                 &nbsp;·&nbsp; max <?= $info['maxLessen'] ?> lessen
             </div>
 
-            <!-- Tijdslot badges: groen = vrij, rood = al bezet -->
+            <!-- Lesblok badges: groen = vrij, rood = al bezet -->
             <div class="slot-grid">
                 <?php foreach ($slots as $slot): ?>
                     <div class="slot <?= in_array($slot, $bezet) ? 'bezet' : 'vrij' ?>">
@@ -360,6 +384,8 @@ function tijdOpties(string $geselecteerd = ''): string
 <script>
 /* ============================================================
    JAVASCRIPT — beschikbaarheid.php
+   Let op: alleen hele uren (geen halve uren) en stap van 2 uur
+   per lesblok, in lijn met de vaste tijden in de PHP-dropdowns.
    ============================================================ */
 
 const LES_DUUR = 120; // elke les duurt 2 uur (in minuten)
@@ -378,7 +404,7 @@ function toggleDag(dag, aan) {
             return;
         }
         document.getElementById('inst_' + dag).classList.add('zichtbaar');
-        herbereken(dag); // toon direct de tijdslot-preview
+        herbereken(dag); // toon direct de lesblok-preview
     } else {
         document.getElementById('inst_' + dag).classList.remove('zichtbaar');
     }
@@ -405,8 +431,9 @@ function setMax(dag, n) {
 }
 
 /**
- * herbereken — Herberekent hoeveel lessen passen en toont de tijdslot-preview.
- * Wordt aangeroepen als begin- of eindtijd verandert.
+ * herbereken — Herberekent hoeveel vaste 2-uurs lesblokken passen
+ * en toont de lesblok-preview. Wordt aangeroepen als begin- of
+ * eindtijd verandert (beide zijn altijd hele uren uit de vaste lijst).
  */
 function herbereken(dag) {
     const begin  = document.getElementById('begin_' + dag).value;
@@ -424,9 +451,11 @@ function herbereken(dag) {
         return;
     }
 
-    /* Bereken hoeveel niet-overlappende 2-uurs lessen passen */
+    /* Bereken hoeveel volledige 2-uurs lesblokken passen.
+       Omdat begin/eind altijd op een 2-uurs grens staan (08, 10, 12...),
+       is dit altijd een geheel getal, nooit een half blok. */
     const maxMogelijk = Math.min(6, Math.floor((eMin - bMin) / LES_DUUR));
-    infoEl.textContent = `Maximaal ${maxMogelijk} lessen van 2 uur passen hier in.`;
+    infoEl.textContent = `Maximaal ${maxMogelijk} lesblokken van 2 uur passen hier in.`;
     infoEl.style.color = '#555';
 
     /* Grijsmakers: knoppen die meer lessen aangeven dan mogelijk zijn */
@@ -440,9 +469,9 @@ function herbereken(dag) {
     const huidigMax = parseInt(document.getElementById('maxVal_' + dag).value);
     if (huidigMax > maxMogelijk) setMax(dag, maxMogelijk);
 
-    /* Toon tijdslot-preview: stap 30 min, elk slot duurt 2 uur */
+    /* Toon lesblok-preview: stap = 2 uur (vaste blokken, geen 30-minuten-stappen) */
     slotsEl.innerHTML = '';
-    for (let m = bMin; m + LES_DUUR <= eMin; m += 30) {
+    for (let m = bMin; m + LES_DUUR <= eMin; m += LES_DUUR) {
         const div       = document.createElement('div');
         div.className   = 'slot';
         div.textContent = minNaarTijd(m) + '–' + minNaarTijd(m + LES_DUUR);
@@ -451,7 +480,8 @@ function herbereken(dag) {
 }
 
 /**
- * tijdNaarMin — Zet "08:30" om naar 510 (minuten).
+ * tijdNaarMin — Zet "08:00" om naar 480 (minuten). Werkt alleen
+ * correct voor hele uren, wat hier altijd het geval is.
  */
 function tijdNaarMin(t) {
     const [u, m] = t.split(':').map(Number);
@@ -459,7 +489,7 @@ function tijdNaarMin(t) {
 }
 
 /**
- * minNaarTijd — Zet 510 om naar "08:30".
+ * minNaarTijd — Zet 480 om naar "08:00".
  */
 function minNaarTijd(m) {
     return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
@@ -475,7 +505,7 @@ function valideer() {
     return true;
 }
 
-/* Bij laden: bereken de slots voor al eerder geselecteerde dagen */
+/* Bij laden: bereken de lesblokken voor al eerder geselecteerde dagen */
 document.querySelectorAll('.dag-checkbox:checked').forEach(cb => herbereken(cb.value));
 </script>
 </body>
