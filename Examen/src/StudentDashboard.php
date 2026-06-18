@@ -258,6 +258,12 @@ $totaalUren   = $totaalLessen * 2; // Elke les duurt 2 uur
                     <h4><?= htmlspecialchars($les['doel']) ?></h4>
                     <p>📍 Ophalen: <strong><?= htmlspecialchars($les['ophaalLocatie']) ?></strong></p>
                     <p>📝 <?= htmlspecialchars($les['onderwerpen']) ?></p>
+                    <?php if (!empty($les['opmerkingen'])): ?>
+                        <p style="margin-top:8px;">
+                            <strong>📝 Opmerking instructeur:</strong><br>
+                            <?= nl2br(htmlspecialchars($les['opmerkingen'])) ?>
+                        </p>
+                    <?php endif; ?>
 
                     <?php if ($rol === 'instructeur'): ?>
                         <p>👤 Student:

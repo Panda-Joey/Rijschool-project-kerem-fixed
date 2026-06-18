@@ -84,7 +84,7 @@ $slagingspercentage = $row['slagingspercentage'];
 $stmtMededelingen = $conn->prepare("
     SELECT titel, bericht, datum_gemaakt 
     FROM meldingen 
-    WHERE ontvanger_type = 'admin'
+    WHERE ontvanger_type = ? OR ontvanger_type = 'admin' 
     ORDER BY datum_gemaakt DESC 
     LIMIT 5
 ");
@@ -147,6 +147,10 @@ $stmtMededelingen->close();
     </div>
 </div>
 
+<div class="mededelingen-container" style="box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); border-radius: 8px; overflow: hidden; margin-bottom: 25px; border: 1px solid #1e293b ;max-width: 1100px;
+width: 100%;
+margin: 0 auto 25px auto; ">
+    
 <div class="mededelingen-container" style="width: 95%; max-width: 1100px; margin: 40px auto 25px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); border-radius: 8px; overflow: hidden; border: 1px solid #1e293b; background: #fff;">
 
     <div style="background-color: #1e293b; color: #ffffff; padding: 15px 20px; display: flex; align-items: center; gap: 10px;">
@@ -194,8 +198,8 @@ $stmtMededelingen->close();
         <div class="form-group">
             <label for="doelgroep">Doelgroep</label>
             <select id="doelgroep" name="doelgroep">
-                <option value="student">Alle studenten</option>
-                <option value="instructeur">Alle instructeurs</option>
+                <option value="alle_studenten">Alle studenten</option>
+                <option value="alle_instructeurs">Alle instructeurs</option>
                 <option value="iedereen">Iedereen</option>
             </select>
         </div>
