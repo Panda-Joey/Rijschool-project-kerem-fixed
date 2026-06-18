@@ -416,6 +416,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                     <th>Lespakket</th>
                     <th>actief</th>
                     <th>Vaste instructeur</th>
+                    <th>Examen pogingen</th>
                     <th>beperking</th>
                     <th>omschrijving</th>
                     <th>Acties</th>
@@ -427,7 +428,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
 
             if ($statusFilter === 'actieve-studenten') {
                 $query = "
-                        SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, s.omschrijving,
+                        SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, s.omschrijving, s.poging,
                         l.naam AS lespakket,
                         i.instructeurID,
                         CONCAT(i.voornaam,' ',i.achternaam) AS vasteInstructeur
@@ -445,7 +446,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                         WHERE s.status = 'actief'";
             } elseif ($statusFilter === 'niewe-studenten') {
                 $query = "
-                          SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, s.omschrijving,
+                          SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, s.omschrijving, s.poging,
                           l.naam AS lespakket,
                           i.instructeurID,
                           CONCAT(i.voornaam,' ',i.achternaam) AS vasteInstructeur
@@ -474,6 +475,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
         s.email,
         s.telefoon,
         s.beperking,
+        s.poging,
         s.omschrijving,
         l.naam AS lespakket,
         i.instructeurID,
@@ -531,9 +533,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                     $dbStatus = $row['status'] ?? 'pending';
                      echo '<td>' . ($dbStatus === 'actief' ? 'Ja' : 'Nee') . '</td>';
                     }
-
+                    
                     echo '<td>' . htmlspecialchars($row['vasteInstructeur'] ?? '-') . '</td>';
-
+                    echo '<td>' . htmlspecialchars($row['poging'] ?? '0') . '</td>';
                     echo '<td>' . (isset($row['beperking']) && $row['beperking'] == 1 ? 'Ja' : 'Nee') . '</td>';
                     echo '<td>' . htmlspecialchars($row['omschrijving'] ?? '-') . '</td>';
                     echo '<td>';
