@@ -1,9 +1,11 @@
 <?php
 require_once dirname(__DIR__) . '/includes/database.php';
 require_once dirname(__DIR__) . '/includes/instructeur_afwezigheid.php';
+require_once dirname(__DIR__) . '/includes/lesvoorkeur.php';
 
 $conn = getDbConnection();
 ensureInstructeurAfwezigheidSchema($conn);
+ensureLesvoorkeurSchema($conn);
 $adminNaam = $_SESSION['naam'] ?? 'Admin';
 $message = '';
 $messageType = '';
@@ -73,6 +75,10 @@ if (isset($_POST['toevoegen'])) {
                 $geboortedatum = trim($_POST['add_geboortedatum'] ?? '');
                 $lespakketID   = (int) ($_POST['add_lespakket'] ?? 0);
                 $statusStudent = 'pending';
+                $transmissie   = $_POST['add_transmissie'] ?? 'schakel';
+                if (!in_array($transmissie, ['schakel', 'automaat'], true)) {
+                    $transmissie = 'schakel';
+                }
 
                 if ($geboortedatum === '') {
                     $message = 'Geboortedatum is verplicht voor studenten.';
@@ -80,11 +86,11 @@ if (isset($_POST['toevoegen'])) {
                 } else {
                     $stmt = $conn->prepare("
                         INSERT INTO studenten
-                        (voornaam, tussenvoegsel, achternaam, email, wachtwoord, telefoon, beperking, omschrijving, geboortedatum, status)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        (voornaam, tussenvoegsel, achternaam, email, wachtwoord, telefoon, beperking, omschrijving, geboortedatum, status, transmissie)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ");
                     $stmt->bind_param(
-                        'ssssssisss',
+                        'ssssssissss',
                         $voornaam,
                         $tussenvoegsel,
                         $achternaam,
@@ -94,7 +100,8 @@ if (isset($_POST['toevoegen'])) {
                         $beperking,
                         $omschrijving,
                         $geboortedatum,
-                        $statusStudent
+                        $statusStudent,
+                        $transmissie
                     );
                     $stmt->execute();
                     $nieuwStudentID = (int) $conn->insert_id;
@@ -114,23 +121,34 @@ if (isset($_POST['toevoegen'])) {
                     $messageType = 'ok';
                 }
             } else {
+                $transmissieInstr = $_POST['add_instructeur_transmissie'] ?? 'schakel';
+                if (!in_array($transmissieInstr, ['schakel', 'automaat', 'beide'], true)) {
+                    $transmissieInstr = 'schakel';
+                }
+
                 $stmt = $conn->prepare("
                     INSERT INTO instructeurs
-                    (voornaam, tussenvoegsel, achternaam, email, wachtwoord, telefoon, omschrijving)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    (voornaam, tussenvoegsel, achternaam, email, wachtwoord, telefoon, omschrijving, transmissie)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ");
                 $stmt->bind_param(
-                    'sssssss',
+                    'ssssssss',
                     $voornaam,
                     $tussenvoegsel,
                     $achternaam,
                     $email,
                     $hash,
                     $telefoon,
-                    $omschrijving
+                    $omschrijving,
+                    $transmissieInstr
                 );
                 $stmt->execute();
+                $nieuwInstructeurID = (int) $conn->insert_id;
                 $stmt->close();
+
+                if ($nieuwInstructeurID > 0) {
+                    syncInstructeurAuto($conn, $nieuwInstructeurID, $transmissieInstr);
+                }
 
                 $message = 'Instructeur succesvol toegevoegd.';
                 $messageType = 'ok';
@@ -166,12 +184,34 @@ if (isset($_POST['bewerken'])) {
             if (!in_array($statusStudent, ['pending', 'actief'], true)) {
                 $statusStudent = 'pending';
             }
+            $transmissie = $_POST['transmissie'] ?? 'schakel';
+            if (!in_array($transmissie, ['schakel', 'automaat'], true)) {
+                $transmissie = 'schakel';
+            }
 
             if ($wachtwoord !== '') {
                 $hash = password_hash($wachtwoord, PASSWORD_DEFAULT);
                 $stmt = $conn->prepare("
                     UPDATE studenten
-                    SET voornaam=?, tussenvoegsel=?, achternaam=?, email=?, wachtwoord=?, telefoon=?, status=?
+                    SET voornaam=?, tussenvoegsel=?, achternaam=?, email=?, wachtwoord=?, telefoon=?, status=?, transmissie=?
+                    WHERE studentID=?
+                ");
+                $stmt->bind_param(
+                    'ssssssssi',
+                    $voornaam,
+                    $tussenvoegsel,
+                    $achternaam,
+                    $email,
+                    $hash,
+                    $telefoon,
+                    $statusStudent,
+                    $transmissie,
+                    $userID
+                );
+            } else {
+                $stmt = $conn->prepare("
+                    UPDATE studenten
+                    SET voornaam=?, tussenvoegsel=?, achternaam=?, email=?, telefoon=?, status=?, transmissie=?
                     WHERE studentID=?
                 ");
                 $stmt->bind_param(
@@ -180,25 +220,9 @@ if (isset($_POST['bewerken'])) {
                     $tussenvoegsel,
                     $achternaam,
                     $email,
-                    $hash,
                     $telefoon,
                     $statusStudent,
-                    $userID
-                );
-            } else {
-                $stmt = $conn->prepare("
-                    UPDATE studenten
-                    SET voornaam=?, tussenvoegsel=?, achternaam=?, email=?, telefoon=?, status=?
-                    WHERE studentID=?
-                ");
-                $stmt->bind_param(
-                    'ssssssi',
-                    $voornaam,
-                    $tussenvoegsel,
-                    $achternaam,
-                    $email,
-                    $telefoon,
-                    $statusStudent,
+                    $transmissie,
                     $userID
                 );
             }
@@ -251,6 +275,11 @@ if (isset($_POST['bewerken'])) {
                 $message = 'De einddatum moet op of na de startdatum liggen.';
                 $messageType = 'fout';
             } else {
+                $transmissieInstr = $_POST['instructeur_transmissie'] ?? 'schakel';
+                if (!in_array($transmissieInstr, ['schakel', 'automaat', 'beide'], true)) {
+                    $transmissieInstr = 'schakel';
+                }
+
                 $vanDb = $afwezigheid === 'niet' ? $afwezigVan : null;
                 $totDb = $afwezigheid === 'niet' ? $afwezigTot : null;
 
@@ -259,11 +288,11 @@ if (isset($_POST['bewerken'])) {
                     $stmt = $conn->prepare("
                         UPDATE instructeurs
                         SET voornaam=?, tussenvoegsel=?, achternaam=?, email=?, wachtwoord=?, telefoon=?,
-                            afwezigheid=?, afwezig_van=?, afwezig_tot=?
+                            afwezigheid=?, afwezig_van=?, afwezig_tot=?, transmissie=?
                         WHERE instructeurID=?
                     ");
                     $stmt->bind_param(
-                        'sssssssssi',
+                        'ssssssssssi',
                         $voornaam,
                         $tussenvoegsel,
                         $achternaam,
@@ -273,17 +302,18 @@ if (isset($_POST['bewerken'])) {
                         $afwezigheid,
                         $vanDb,
                         $totDb,
+                        $transmissieInstr,
                         $userID
                     );
                 } else {
                     $stmt = $conn->prepare("
                         UPDATE instructeurs
                         SET voornaam=?, tussenvoegsel=?, achternaam=?, email=?, telefoon=?,
-                            afwezigheid=?, afwezig_van=?, afwezig_tot=?
+                            afwezigheid=?, afwezig_van=?, afwezig_tot=?, transmissie=?
                         WHERE instructeurID=?
                     ");
                     $stmt->bind_param(
-                        'ssssssssi',
+                        'sssssssssi',
                         $voornaam,
                         $tussenvoegsel,
                         $achternaam,
@@ -292,12 +322,15 @@ if (isset($_POST['bewerken'])) {
                         $afwezigheid,
                         $vanDb,
                         $totDb,
+                        $transmissieInstr,
                         $userID
                     );
                 }
 
                 $stmt->execute();
                 $stmt->close();
+
+                syncInstructeurAuto($conn, $userID, $transmissieInstr);
 
                 if ($afwezigheid === 'niet') {
                     syncInstructeurAfwezigheidslessen($conn, $userID, $afwezigVan, $afwezigTot);
@@ -382,8 +415,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
     <div class="nav-grid">
         <a href="AdminDashboard.php" class="nav-card">Dashboard</a>
         <a href="AdminGebruikers.php" class="nav-card active">Gebruikers</a>
-        <a href="#" class="nav-card">Rooster</a>
-        <a href="#" class="nav-card">Profiel</a>
         <a href="AdminWagenpark.php" class="nav-card">Wagenpark</a>
     </div>
 
@@ -413,6 +444,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                     <th>Naam</th>
                     <th>Email</th>
                     <th>Telefoon</th>
+                    <th>Gespecialiseerd in</th>
                     <th>Lespakket</th>
                     <th>actief</th>
                     <th>Vaste instructeur</th>
@@ -428,7 +460,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
 
             if ($statusFilter === 'actieve-studenten') {
                 $query = "
-                        SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, s.omschrijving, s.poging,
+                        SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, s.omschrijving, s.poging, s.transmissie,
                         l.naam AS lespakket,
                         i.instructeurID,
                         CONCAT(i.voornaam,' ',i.achternaam) AS vasteInstructeur
@@ -446,7 +478,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                         WHERE s.status = 'actief'";
             } elseif ($statusFilter === 'niewe-studenten') {
                 $query = "
-                          SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, s.omschrijving, s.poging,
+                          SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, s.omschrijving, s.poging, s.transmissie, s.transmissie,
                           l.naam AS lespakket,
                           i.instructeurID,
                           CONCAT(i.voornaam,' ',i.achternaam) AS vasteInstructeur
@@ -463,7 +495,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                           ON shi.instructeurID = i.instructeurID
                           WHERE s.status = 'pending'";
             } elseif ($statusFilter === 'instructeurs') {
-                $query = 'SELECT instructeurID, voornaam, afwezigheid, afwezig_van, afwezig_tot, tussenvoegsel, achternaam, email, telefoon, omschrijving FROM instructeurs';
+                $query = 'SELECT instructeurID, voornaam, afwezigheid, afwezig_van, afwezig_tot, tussenvoegsel, achternaam, email, telefoon, omschrijving, transmissie FROM instructeurs';
             } else {
                   $query = "
     SELECT
@@ -477,6 +509,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
         s.beperking,
         s.poging,
         s.omschrijving,
+        s.transmissie,
         l.naam AS lespakket,
         i.instructeurID,
         CONCAT(i.voornaam, ' ', i.achternaam) AS vasteInstructeur
@@ -499,17 +532,26 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
             $result = $conn->query($query);
 
             if (!$result) {
-                echo "<tr><td colspan='7' style='color:red; font-weight:bold;'>Database Fout: " . htmlspecialchars($conn->error) . '</td></tr>';
+                echo "<tr><td colspan='11' style='color:red; font-weight:bold;'>Database Fout: " . htmlspecialchars($conn->error) . '</td></tr>';
             } elseif ($result->num_rows > 0) {
                 while ($row = $result->fetch_assoc()) {
                     $id = $row['studentID'] ?? $row['instructeurID'] ?? 0;
                     $huidigeRol = ($statusFilter === 'instructeurs') ? 'instructeur' : 'student';
                     $volledigeNaam = trim(($row['voornaam'] ?? '') . ' ' . ($row['tussenvoegsel'] ?? '') . ' ' . ($row['achternaam'] ?? ''));
+                    $transmissieLabel = match ($row['transmissie'] ?? 'schakel') {
+                        'automaat' => 'Automaat',
+                        'beide' => 'Beide',
+                        default => 'Handgeschakeld',
+                    };
+                    $naamWeergave = $huidigeRol === 'instructeur'
+                        ? $volledigeNaam . ' — ' . $transmissieLabel
+                        : $volledigeNaam;
 
                     echo '<tr>';
-                    echo '<td>' . htmlspecialchars($volledigeNaam) . '</td>';
+                    echo '<td>' . htmlspecialchars($naamWeergave) . '</td>';
                     echo '<td>' . htmlspecialchars($row['email'] ?? '') . '</td>';
                     echo '<td>' . htmlspecialchars($row['telefoon'] ?? '') . '</td>';
+                    echo '<td>' . ($huidigeRol === 'instructeur' ? '-' : htmlspecialchars($transmissieLabel)) . '</td>';
                     echo '<td>' . htmlspecialchars($row['lespakket'] ?? '-') . '</td>';
                     
 
@@ -553,6 +595,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                         'afwezigheid' => $row['afwezigheid'] ?? 'beschikbaar',
                         'afwezig_van' => $row['afwezig_van'] ?? '',
                         'afwezig_tot' => $row['afwezig_tot'] ?? '',
+                        'transmissie' => $row['transmissie'] ?? 'schakel',
                     ]) . ")'>Bewerken</button>";
                     echo "    <a href='AdminGebruikers.php?action=delete&amp;id=" . $id . "' class='btn-delete' onclick='return confirm(\"Weet je zeker dat je dit wilt verwijderen?\");'>Verwijderen</a>";
                     echo '  </div>';
@@ -560,7 +603,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                     echo '</tr>';
                 }
             } else {
-                echo "<tr><td colspan='7'>Geen resultaten gevonden.</td></tr>";
+                echo "<tr><td colspan='11'>Geen resultaten gevonden.</td></tr>";
             }
             ?>
             </tbody>
@@ -613,7 +656,26 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                 <input type="password" name="add_wachtwoord" required>
             </div>
 
+            <div id="instructeur_extra_fields" style="display:none;">
+                <div class="modal-form-group">
+                    <label for="add_instructeur_transmissie">Gespecialiseerd in:</label>
+                    <select name="add_instructeur_transmissie" id="add_instructeur_transmissie">
+                        <option value="schakel">Handgeschakeld</option>
+                        <option value="automaat">Automaat</option>
+                        <option value="beide">Beide</option>
+                    </select>
+                </div>
+            </div>
+
             <div id="student_extra_fields">
+                <div class="modal-form-group">
+                    <label>Gespecialiseerd in:</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="add_transmissie" value="schakel" checked> Handgeschakeld</label>
+                        <label><input type="radio" name="add_transmissie" value="automaat"> Automaat</label>
+                    </div>
+                </div>
+
                 <div class="modal-form-group">
                     <label>Geboortedatum:</label>
                     <input type="date" name="add_geboortedatum">
@@ -730,6 +792,23 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
 
                 </div>
 
+            <div class="modal-form-group" id="edit_student_transmissie_group">
+                <label for="edit_transmissie">Gespecialiseerd in:</label>
+                <select name="transmissie" id="edit_transmissie">
+                    <option value="schakel">Handgeschakeld</option>
+                    <option value="automaat">Automaat</option>
+                </select>
+            </div>
+
+            <div class="modal-form-group" id="edit_instructeur_transmissie_group" style="display:none;">
+                <label for="edit_instructeur_transmissie">Gespecialiseerd in:</label>
+                <select name="instructeur_transmissie" id="edit_instructeur_transmissie">
+                    <option value="schakel">Handgeschakeld</option>
+                    <option value="automaat">Automaat</option>
+                    <option value="beide">Beide</option>
+                </select>
+            </div>
+
             <div class="modal-form-group">
                 <label>Wachtwoord (leeg laten om te behouden):</label>
                 <input type="password" name="wachtwoord" placeholder="Nieuw wachtwoord...">
@@ -756,8 +835,8 @@ function closeAddModal() {
 
 function toggleAddFields() {
     var rol = document.getElementById('add_rol').value;
-    var extraFields = document.getElementById('student_extra_fields');
-    extraFields.style.display = rol === 'instructeur' ? 'none' : 'block';
+    document.getElementById('student_extra_fields').style.display = rol === 'instructeur' ? 'none' : 'block';
+    document.getElementById('instructeur_extra_fields').style.display = rol === 'instructeur' ? 'block' : 'none';
 }
 
 function toggleAfwezigPeriode() {
@@ -783,6 +862,9 @@ function openEditModal(data) {
         document.getElementById('edit_afwezigheid_group').style.display = 'block';
         document.getElementById('edit_status_group').style.display = 'none';
         document.getElementById('edit_vaste_instructeur_group').style.display = 'none';
+        document.getElementById('edit_student_transmissie_group').style.display = 'none';
+        document.getElementById('edit_instructeur_transmissie_group').style.display = 'block';
+        document.getElementById('edit_instructeur_transmissie').value = data.transmissie || 'schakel';
         document.getElementById('edit_afwezigheid').value = data.afwezigheid || 'beschikbaar';
 
         document.getElementById('edit_afwezigheid').value =
@@ -794,6 +876,9 @@ function openEditModal(data) {
         document.getElementById('edit_status_group').style.display = 'block';
         document.getElementById('edit_afwezigheid_group').style.display = 'none';
         document.getElementById('edit_vaste_instructeur_group').style.display = 'block';
+        document.getElementById('edit_student_transmissie_group').style.display = 'block';
+        document.getElementById('edit_instructeur_transmissie_group').style.display = 'none';
+        document.getElementById('edit_transmissie').value = data.transmissie || 'schakel';
     }
 
     var statusGroup = document.getElementById('edit_status_group');

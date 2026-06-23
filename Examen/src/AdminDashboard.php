@@ -122,8 +122,6 @@ $stmtMededelingen->close();
     <div class="nav-grid">
         <a href="AdminDashboard.php" class="nav-card active">Dashboard</a>
         <a href="AdminGebruikers.php" class="nav-card">Gebruikers</a>
-        <a href="#" class="nav-card">Rooster</a>
-        <a href="#" class="nav-card">Profiel</a>
         <a href="AdminWagenpark.php" class="nav-card">Wagenpark</a>
     </div>
 </div>

@@ -168,12 +168,12 @@ $active = 'aanmelden';
                     </section>
 
                     <section class="form-section">
-                        <p class="form-section__title">Type auto (Transmissie)</p>
-                        <p class="form-note">In wat voor soort auto wil je lestoepassingen volgen?</p>
+                        <p class="form-section__title">Gespecialiseerd in</p>
+                        <p class="form-note">In wat voor soort auto wil je rijlessen volgen?</p>
 
                         <div class="radio-group">
                             <label>
-                                <input type="radio" name="transmissie" value="schakel"
+                                <input type="radio" name="transmissie" value="schakel" required
                                     <?= ($_POST['transmissie'] ?? 'schakel') === 'schakel' ? 'checked' : '' ?>>
                                 Handgeschakeld
                             </label>

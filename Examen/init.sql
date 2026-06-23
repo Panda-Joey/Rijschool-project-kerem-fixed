@@ -234,6 +234,8 @@ UPDATE `studenten` SET
   `email` = 'jan@test.nl',
   `voornaam` = 'Jan',
   `achternaam` = 'Jansen',
-  `status` = 'actief',
+  `status` = 'geslaagd',
+  `geslaagd` = 1,
+  `poging` = 3,
   `wachtwoord` = '$2y$10$oTCSp7GRKlyBeS2Ptn69iOEIlwfShKpBs5HwXHrxmmjbmAC2xo3lW'
 WHERE `studentID` = 1;
