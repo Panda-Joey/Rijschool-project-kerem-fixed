@@ -19,8 +19,9 @@ while ($row = $pakketResult->fetch_assoc()) {
 $instructeurs = [];
 
 $result = $conn->query("
-SELECT instructeurID,
-CONCAT(voornaam,' ',achternaam) AS naam
+SELECT
+    instructeurID,
+    CONCAT(voornaam,' ',achternaam,' - ',transmissie) AS naam
 FROM instructeurs
 ORDER BY voornaam
 ");
@@ -30,6 +31,7 @@ while ($row = $result->fetch_assoc()) {
 }
 
 if (isset($_POST['toevoegen'])) {
+    $transmissie = $_POST['add_transmissie'] ?? 'beide';
     $rol           = $_POST['add_rol'] ?? 'student';
     $voornaam      = trim($_POST['add_voornaam'] ?? '');
     $tussenvoegsel = trim($_POST['add_tussenvoegsel'] ?? '');
@@ -463,7 +465,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                         SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, s.omschrijving, s.poging, s.transmissie,
                         l.naam AS lespakket,
                         i.instructeurID,
-                        CONCAT(i.voornaam,' ',i.achternaam) AS vasteInstructeur
+                        CONCAT(i.voornaam, ' ', i.achternaam, ' - ', i.transmissie) AS vasteInstructeur
                         FROM studenten s
                         LEFT JOIN student_lespakket sl
                         ON s.studentID = sl.studentID
@@ -649,6 +651,15 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
             <div class="modal-form-group">
                 <label>Telefoon:</label>
                 <input type="text" name="add_telefoon">
+            </div>
+
+            <div class="modal-form-group" id="add_transmissie_group" style="display:none;">
+            <label>Transmissie:</label>
+            <select name="add_transmissie">
+            <option value="schakel">Schakel</option>
+            <option value="automaat">Automaat</option>
+            <option value="beide">Beide</option>
+            </select>
             </div>
 
             <div class="modal-form-group">
