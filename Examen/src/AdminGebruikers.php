@@ -17,8 +17,9 @@ while ($row = $pakketResult->fetch_assoc()) {
 $instructeurs = [];
 
 $result = $conn->query("
-SELECT instructeurID,
-CONCAT(voornaam,' ',achternaam) AS naam
+SELECT
+    instructeurID,
+    CONCAT(voornaam,' ',achternaam,' - ',transmissie) AS naam
 FROM instructeurs
 ORDER BY voornaam
 ");
@@ -28,6 +29,7 @@ while ($row = $result->fetch_assoc()) {
 }
 
 if (isset($_POST['toevoegen'])) {
+    $transmissie = $_POST['add_transmissie'] ?? 'beide';
     $rol           = $_POST['add_rol'] ?? 'student';
     $voornaam      = trim($_POST['add_voornaam'] ?? '');
     $tussenvoegsel = trim($_POST['add_tussenvoegsel'] ?? '');
@@ -79,7 +81,7 @@ if (isset($_POST['toevoegen'])) {
                     $messageType = 'fout';
                 } else {
                     $stmt = $conn->prepare("
-                        INSERT INTO studenten
+                         INSERT INTO studenten
                         (voornaam, tussenvoegsel, achternaam, email, wachtwoord, telefoon, beperking, omschrijving, geboortedatum, status)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ");
@@ -116,18 +118,19 @@ if (isset($_POST['toevoegen'])) {
             } else {
                 $stmt = $conn->prepare("
                     INSERT INTO instructeurs
-                    (voornaam, tussenvoegsel, achternaam, email, wachtwoord, telefoon, omschrijving)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    (voornaam, tussenvoegsel, achternaam, email, wachtwoord, telefoon, omschrijving, transmissie)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ");
                 $stmt->bind_param(
-                    'sssssss',
+                    'ssssssss',
                     $voornaam,
                     $tussenvoegsel,
                     $achternaam,
                     $email,
                     $hash,
                     $telefoon,
-                    $omschrijving
+                    $omschrijving,
+                    $transmissie
                 );
                 $stmt->execute();
                 $stmt->close();
@@ -431,7 +434,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                         SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, s.omschrijving, s.poging,
                         l.naam AS lespakket,
                         i.instructeurID,
-                        CONCAT(i.voornaam,' ',i.achternaam) AS vasteInstructeur
+                        CONCAT(i.voornaam, ' ', i.achternaam, ' - ', i.transmissie) AS vasteInstructeur
                         FROM studenten s
                         LEFT JOIN student_lespakket sl
                         ON s.studentID = sl.studentID
@@ -608,6 +611,15 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                 <input type="text" name="add_telefoon">
             </div>
 
+            <div class="modal-form-group" id="add_transmissie_group" style="display:none;">
+            <label>Transmissie:</label>
+            <select name="add_transmissie">
+            <option value="schakel">Schakel</option>
+            <option value="automaat">Automaat</option>
+            <option value="beide">Beide</option>
+            </select>
+            </div>
+
             <div class="modal-form-group">
                 <label>Wachtwoord:</label>
                 <input type="password" name="add_wachtwoord" required>
@@ -756,8 +768,17 @@ function closeAddModal() {
 
 function toggleAddFields() {
     var rol = document.getElementById('add_rol').value;
+
     var extraFields = document.getElementById('student_extra_fields');
-    extraFields.style.display = rol === 'instructeur' ? 'none' : 'block';
+    var transmissie = document.getElementById('add_transmissie_group');
+
+    if (rol === 'instructeur') {
+        extraFields.style.display = 'none';
+        transmissie.style.display = 'block';
+    } else {
+        extraFields.style.display = 'block';
+        transmissie.style.display = 'none';
+    }
 }
 
 function toggleAfwezigPeriode() {
