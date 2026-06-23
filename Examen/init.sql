@@ -139,6 +139,24 @@ CREATE TABLE `studenten_has_instructeurs` (
   CONSTRAINT `fk_studenten_has_instructeurs_instructeurs1` FOREIGN KEY (`instructeurID`) REFERENCES `instructeurs` (`instructeurID`)
 ) ENGINE=InnoDB;
 
+DROP TABLE IF EXISTS `examens`;
+CREATE TABLE `examens` (
+  `examID` INT(11) NOT NULL AUTO_INCREMENT,
+  `studentID` INT(11) NOT NULL,
+  `instructeurID` INT(11) NOT NULL,
+  `examDatum` DATE NOT NULL,
+  `examTijd` TIME NOT NULL,
+  `locatie` VARCHAR(100) NOT NULL,
+  `opmerking` VARCHAR(300) NULL DEFAULT NULL,
+  `poging` INT(11) NOT NULL DEFAULT 1,
+  `uitslag` ENUM('wachten', 'geslaagd', 'gezakt') NOT NULL DEFAULT 'wachten',
+  PRIMARY KEY (`examID`),
+  INDEX `fk_examens_student` (`studentID`),
+  INDEX `fk_examens_instructeur` (`instructeurID`),
+  CONSTRAINT `fk_examens_student` FOREIGN KEY (`studentID`) REFERENCES `studenten` (`studentID`),
+  CONSTRAINT `fk_examens_instructeur` FOREIGN KEY (`instructeurID`) REFERENCES `instructeurs` (`instructeurID`)
+) ENGINE=InnoDB;
+
 DROP TABLE IF EXISTS `meldingen`;
 CREATE TABLE `meldingen` (
   `meldingID` INT(11) NOT NULL AUTO_INCREMENT,

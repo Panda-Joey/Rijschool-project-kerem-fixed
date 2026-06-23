@@ -14,8 +14,11 @@ if (!isset($_SESSION['userID'])) {
 }
 
 /* --- Database verbinding --- */
-$conn = new mysqli("mysql", "root", "password", "Eend");
-if ($conn->connect_error) die("Verbinding mislukt: " . $conn->connect_error);
+require_once dirname(__DIR__) . '/includes/database.php';
+require_once dirname(__DIR__) . '/includes/examen.php';
+
+$conn = getDbConnection();
+ensureExamenSchema($conn);
 
 /* --- Sessievariabelen --- */
 $rol    = $_SESSION['rol'];

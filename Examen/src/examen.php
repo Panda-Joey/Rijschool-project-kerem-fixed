@@ -17,7 +17,10 @@ if (!isset($_SESSION['userID']) || $_SESSION['rol'] !== 'instructeur') {
 }
 
 require_once dirname(__DIR__) . '/includes/database.php';
+require_once dirname(__DIR__) . '/includes/examen.php';
+
 $conn = getDbConnection();
+ensureExamenSchema($conn);
 
 $instrID = $_SESSION['userID'];
 $succes  = "";
@@ -78,18 +81,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['actie'] === 'aanvragen') {
             $stNaam       = $st['voornaam'] . ' ' . $st['achternaam'];
             $eindTijd     = date('H:i', strtotime($tijd . ':00 +1 hour')); // vaste duur van 1 uur
 
+            $tijdDb = $conn->real_escape_string($tijd . ':00');
+
             /* Verhoog pogingsnummer op student */
             $conn->query("UPDATE studenten SET poging = $nieuwePoging WHERE studentID = $studentID");
 
             /* Sla examen op in examens tabel */
             $conn->query("
                 INSERT INTO examens (studentID, instructeurID, examDatum, examTijd, locatie, opmerking, poging, uitslag)
-                VALUES ($studentID, $instrID, '$datum', '$tijd:00', '$locatie', '$opmerking', $nieuwePoging, 'wachten')
+                VALUES ($studentID, $instrID, '$datum', '$tijdDb', '$locatie', '$opmerking', $nieuwePoging, 'wachten')
             ");
 
             /* Melding naar student */
             $titel   = $conn->real_escape_string("Examen aangevraagd — Poging $nieuwePoging");
-            $bericht = $conn->real_escape_string("Je instructeur heeft een examen aangevraagd. Datum: $datum, $tijd–$eindTijd uur. Locatie: $locatie." . ($opmerking ? " Opmerking: $opmerking" : ""));
+            $bericht = $conn->real_escape_string(
+                "Je instructeur heeft een examen aangevraagd. Datum: {$datum}, {$tijd}–{$eindTijd} uur. Locatie: {$locatie}."
+                . ($opmerking ? " Opmerking: {$opmerking}" : '')
+            );
             $conn->query("INSERT INTO meldingen (titel, bericht, ontvanger_type, ontvanger_id) VALUES ('$titel', '$bericht', 'student', $studentID)");
 
             $succes = "Examen aangevraagd voor <strong>$stNaam</strong> (poging $nieuwePoging) op <strong>$datum</strong> om <strong>$tijd</strong>.";
