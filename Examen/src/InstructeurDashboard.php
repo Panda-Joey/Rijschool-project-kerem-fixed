@@ -152,7 +152,7 @@ $stmtMededelingen->close();
 
 // ── Stats ────────────────────────────────────────────────────────────
 $totaalLessen = count($lessen);
-$totaalUren = $totaalLessen; // Elke les = 1 uur
+$totaalUren = $totaalLessen * 2; // Elke les duurt 2 uur
 ?>
 <!DOCTYPE html>
 <html lang="nl">
