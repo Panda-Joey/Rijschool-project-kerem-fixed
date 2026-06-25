@@ -440,6 +440,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
             <button type="submit">Filter</button>
         </form>
 
+        <div class="table-responsive">
         <table border="1">
             <thead>
                 <tr>
@@ -610,6 +611,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
             ?>
             </tbody>
         </table>
+        </div>
     </div>
 </div>
 
