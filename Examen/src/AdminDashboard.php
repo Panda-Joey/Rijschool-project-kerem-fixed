@@ -202,12 +202,12 @@ $stmtMededelingen->close();
 
         <div class="form-group">
             <label for="titel">Titel</label>
-            <input type="text" id="titel" name="titel" required>
+            <input type="text" id="titel" name="titel" maxlength="100" required>
         </div>
 
         <div class="form-group">
             <label for="bericht">Bericht</label>
-            <textarea id="bericht" name="bericht" rows="6" required></textarea>
+            <textarea id="bericht" name="bericht" rows="6" maxlength="500" required></textarea>
         </div>
 
         <button type="submit" class="btn-primary">

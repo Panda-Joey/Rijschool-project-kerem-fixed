@@ -404,7 +404,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
             <select name="gebruiker_filter" id="filter_status">
                 <option value="">alle studenten</option>
                 <option value="actieve-studenten" <?= ($_GET['gebruiker_filter'] ?? '') === 'actieve-studenten' ? 'selected' : '' ?>>actieve studenten</option>
-                <option value="niewe-studenten" <?= ($_GET['gebruiker_filter'] ?? '') === 'niewe-studenten' ? 'selected' : '' ?>>aangemelden studenten</option>
+                <option value="nieuwe-studenten" <?= ($_GET['gebruiker_filter'] ?? '') === 'nieuwe-studenten' ? 'selected' : '' ?>>aangemelden studenten</option>
                 <option value="instructeurs" <?= ($_GET['gebruiker_filter'] ?? '') === 'instructeurs' ? 'selected' : '' ?>>instructeurs</option>
             </select>
             <button type="submit">Filter</button>
@@ -447,7 +447,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
                         LEFT JOIN instructeurs i
                         ON shi.instructeurID = i.instructeurID
                         WHERE s.status = 'actief'";
-            } elseif ($statusFilter === 'niewe-studenten') {
+            } elseif ($statusFilter === 'nieuwe-studenten') {
                 $query = "
                           SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, s.omschrijving, s.poging,
                           l.naam AS lespakket,
@@ -588,27 +588,27 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
 
             <div class="modal-form-group">
                 <label>Voornaam:</label>
-                <input type="text" name="add_voornaam" required>
+                <input type="text" name="add_voornaam" maxlength="50" required>
             </div>
 
             <div class="modal-form-group">
                 <label>Tussenvoegsel:</label>
-                <input type="text" name="add_tussenvoegsel">
+                <input type="text" name="add_tussenvoegsel" maxlength="30">
             </div>
 
             <div class="modal-form-group">
                 <label>Achternaam:</label>
-                <input type="text" name="add_achternaam" required>
+                <input type="text" name="add_achternaam" maxlength="100"required>
             </div>
 
             <div class="modal-form-group">
                 <label>Email:</label>
-                <input type="email" name="add_email" required>
+                <input type="email" name="add_email" maxlength="50" required>
             </div>
 
             <div class="modal-form-group">
                 <label>Telefoon:</label>
-                <input type="text" name="add_telefoon">
+                <input type="text" name="add_telefoon" maxlength="225">
             </div>
 
             <div class="modal-form-group" id="add_transmissie_group" style="display:none;">
@@ -622,7 +622,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
 
             <div class="modal-form-group">
                 <label>Wachtwoord:</label>
-                <input type="password" name="add_wachtwoord" required>
+                <input type="password" name="add_wachtwoord" maxlength="225" required>
             </div>
 
             <div id="student_extra_fields">
@@ -653,7 +653,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
 
                 <div class="modal-form-group">
                     <label>Omschrijving:</label>
-                    <input type="text" name="add_omschrijving" placeholder="omschrijving van je beperking">
+                    <input type="text" name="add_omschrijving" placeholder="omschrijving van je beperking" maxlength="255">
                 </div>
             </div>
 
@@ -700,27 +700,27 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
 
             <div class="modal-form-group">
                 <label>Voornaam:</label>
-                <input type="text" name="voornaam" id="edit_voornaam" required>
+                <input type="text" name="voornaam" id="edit_voornaam" maxlength="50" required>
             </div>
 
             <div class="modal-form-group">
                 <label>Tussenvoegsel:</label>
-                <input type="text" name="tussenvoegsel" id="edit_tussenvoegsel">
+                <input type="text" name="tussenvoegsel" id="edit_tussenvoegsel" maxlength="30">
             </div>
 
             <div class="modal-form-group">
                 <label>Achternaam:</label>
-                <input type="text" name="achternaam" id="edit_achternaam" required>
+                <input type="text" name="achternaam" id="edit_achternaam" maxlength="100" required>
             </div>
 
             <div class="modal-form-group">
                 <label>Email:</label>
-                <input type="email" name="email" id="edit_email" required>
+                <input type="email" name="email" id="edit_email" maxlength="255" required>
             </div>
 
             <div class="modal-form-group">
                 <label>Telefoon:</label>
-                <input type="text" name="telefoon" id="edit_telefoon">
+                <input type="text" name="telefoon" id="edit_telefoon" maxlength="20">
             </div>
 
             <div class="modal-form-group"  id="edit_vaste_instructeur_group">
@@ -744,7 +744,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !empty($_GET['id']
 
             <div class="modal-form-group">
                 <label>Wachtwoord (leeg laten om te behouden):</label>
-                <input type="password" name="wachtwoord" placeholder="Nieuw wachtwoord...">
+                <input type="password" name="wachtwoord" placeholder="Nieuw wachtwoord..." maxlength="255">
             </div>
 
             <button type="submit" name="bewerken" class="btn-submit">Wijzigingen Opslaan</button>
