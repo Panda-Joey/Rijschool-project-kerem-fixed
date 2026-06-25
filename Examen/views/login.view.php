@@ -1,7 +1,7 @@
 <?php
 /**
  * Login-scherm — pas hier het uiterlijk aan.
- * Logica & accounts: includes/login-page.php, includes/auth.php, config/app.php
+ * Logica & accounts: src/login.php, config/app.php
  */
 ?>
 <!DOCTYPE html>
@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="<?= htmlspecialchars(app_url('assets/css/login.css'), ENT_QUOTES, 'UTF-8') ?>">
 </head>
 <body>
-    <?php $active = 'login'; require __DIR__ . '/partials/header.php'; ?>
+    <?php $active = 'login'; include __DIR__ . '/partials/header.php'; ?>
 
     <main class="page page--with-header">
         <div class="card">
@@ -28,7 +28,7 @@
                         </div>
                     </div>
 
-                    <form method="post" action="<?= htmlspecialchars(app_url('login.php'), ENT_QUOTES, 'UTF-8') ?>">
+                    <form method="post" action="<?= htmlspecialchars(login_url(), ENT_QUOTES, 'UTF-8') ?>">
                         <div class="field">
                             <label for="email">Email</label>
                             <input
@@ -54,14 +54,14 @@
                         <button type="submit" class="btn btn-primary">Inloggen</button>
                     </form>
 
-                    <a href="<?= htmlspecialchars(app_url(), ENT_QUOTES, 'UTF-8') ?>" class="btn btn-secondary btn-link">Terug</a>
+                    <a href="<?= htmlspecialchars(src_url('homepage.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn btn-secondary btn-link">Terug naar homepage</a>
 
                     <?php if (ENABLE_TEST_LOGIN): ?>
                         <div class="test-box">
                             <p class="test-box__title">Test — direct inloggen</p>
                             <div class="test-box__buttons">
                                 <div class="test-user">
-                                    <a href="<?= htmlspecialchars(app_url('login.php?test=leerling'), ENT_QUOTES, 'UTF-8') ?>" class="btn btn-test">Log in als Leerling</a>
+                                    <a href="<?= htmlspecialchars(login_url() . '?test=leerling', ENT_QUOTES, 'UTF-8') ?>" class="btn btn-test">Log in als Leerling</a>
                                     <div class="test-user__creds">
                                         <span><strong>Email:</strong> <code>leerling@rijschool.nl</code></span>
                                         <span><strong>Wachtwoord:</strong> <code>wachtwoord123</code></span>
@@ -71,7 +71,7 @@
                                 </div>
 
                                 <div class="test-user">
-                                    <a href="<?= htmlspecialchars(app_url('login.php?test=instructeur'), ENT_QUOTES, 'UTF-8') ?>" class="btn btn-test">Log in als Instructeur</a>
+                                    <a href="<?= htmlspecialchars(login_url() . '?test=instructeur', ENT_QUOTES, 'UTF-8') ?>" class="btn btn-test">Log in als Instructeur</a>
                                     <div class="test-user__creds">
                                         <span><strong>Email:</strong> <code>instructeur@rijschool.nl</code></span>
                                         <span><strong>Wachtwoord:</strong> <code>wachtwoord123</code></span>
@@ -81,7 +81,7 @@
                                 </div>
 
                                 <div class="test-user">
-                                    <a href="<?= htmlspecialchars(app_url('login.php?test=eigenaar'), ENT_QUOTES, 'UTF-8') ?>" class="btn btn-test">Log in als Eigenaar</a>
+                                    <a href="<?= htmlspecialchars(login_url() . '?test=eigenaar', ENT_QUOTES, 'UTF-8') ?>" class="btn btn-test">Log in als Eigenaar</a>
                                     <div class="test-user__creds">
                                         <span><strong>Email:</strong> <code>eigenaar@rijschool.nl</code></span>
                                         <span><strong>Wachtwoord:</strong> <code>wachtwoord123</code></span>

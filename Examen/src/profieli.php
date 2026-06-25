@@ -1,5 +1,4 @@
 <?php
-session_start();
 
 // Controleren of de instructeur is ingelogd
 if (!isset($_SESSION['userID']) || $_SESSION['rol'] !== 'instructeur') {
@@ -46,11 +45,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
 
         if ($stmt->execute()) {
-            $success_msg = "✅ Je instructeursprofiel is succesvol bijgewerkt!";
+            $success_msg = " Je instructeursprofiel is succesvol bijgewerkt!";
             $_SESSION['naam'] = trim("$voornaam $tussenvoegsel $achternaam");
             $naam = $_SESSION['naam'];
         } else {
-            $error_msg = "❌ Er ging iets mis bij het updaten: " . $conn->error;
+            $error_msg = " Er ging iets mis bij het updaten: " . $conn->error;
         }
         $stmt->close();
     }
@@ -79,20 +78,11 @@ if (!$instructeur) {
 <body>
 <div class="container">
 
-    <div class="dash-header">
-        <div>
-            <h2>👋 <?= htmlspecialchars($naam) ?> <span class="rol-badge badge-instructeur" style="background:#10b981; color:white; padding:3px 8px; border-radius:4px; font-size:14px;">🎓 Instructeur</span></h2>
-            <span>Instructeur Dashboard > Profiel beheren</span>
-        </div>
-        <a href="../logout.php" class="logout-btn">Uitloggen →</a>
-    </div>
-
-    <div class="top-buttons">
-        <a href="instructeurdashboard.php" class="nav-btn" style="text-decoration:none;color:inherit;">Dashboard</a>
-        <a href="kalender.php" class="nav-btn" style="text-decoration:none;color:inherit;">Kalender</a>
-        <a href="beschikbaarheid.php" class="nav-btn" style="text-decoration:none;color:inherit;">Rooster / Beschikbaarheid</a>
-        <div class="nav-btn active">Profiel</div>
-    </div>
+    <?php
+    $navActief = 'profiel';
+    $paginaLabel = 'Profiel beheren';
+    require_once 'instructeur_nav.php';
+    ?>
 
     <?php if (!empty($success_msg)): ?>
         <div style="background: #d1e7dd; color: #0f5132; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
@@ -107,7 +97,7 @@ if (!$instructeur) {
     <?php endif; ?>
 
     <div class="les-lijst" style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-        <h3 style="margin-top:0; border-bottom: 2px solid #f3f4f6; padding-bottom: 10px;">📋 Instructeur Gegevens</h3>
+        <h3 style="margin-top:0; border-bottom: 2px solid #f3f4f6; padding-bottom: 10px;"> Instructeur Gegevens</h3>
         
         <form action="" method="POST" style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;">
             
@@ -152,14 +142,14 @@ if (!$instructeur) {
             <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
 
             <div>
-                <h3 style="margin-top:0;">🔒 Wachtwoord Wijzigen</h3>
+                <h3 style="margin-top:0;"> Wachtwoord Wijzigen</h3>
                 <label style="display:block; font-weight:bold; margin-bottom:5px;">Nieuw Wachtwoord (Laat leeg om niet te wijzigen)</label>
                 <input type="password" name="wachtwoord" placeholder="••••••••" style="width:100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px;">
             </div>
 
             <div style="margin-top: 10px;">
                 <button type="submit" style="background: #1b2940; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold;">
-                    💾 Gegevens Opslaan
+                     Gegevens Opslaan
                 </button>
             </div>
 

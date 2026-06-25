@@ -2,18 +2,17 @@ USE `Eend`;
 
 -- 1. Dummy data voor `Autos`
 -- Let op: autoID heeft geen AUTO_INCREMENT in jouw script, dus deze vullen we handmatig in.
-INSERT INTO `Autos` (`autoID`, `merk`, `type`, `kenteken`, `transmissie`) VALUES
-(1, 'Volkswagen', 'Golf 8', 'G-123-AA', 1), -- 1 = Handgeschakeld
-(2, 'Tesla', 'Model 3', 'K-987-ZZ', 0),      -- 0 = Automaat
-(3, 'Ford', 'Fiesta', 'X-456-BB', 1),        -- 1 = Handgeschakeld
-(4, 'BMW', '1 Serie', 'T-554-KK', 0);        -- 0 = Automaat
+INSERT INTO `Autos` (`autoID`, `merk`, `type`, `kenteken`, `transmissie`, `brandstof`) VALUES
+(1, 'Tesla', 'Model 3', 'K-987-ZZ', 0, 1),           -- elektrisch, automaat
+(2, 'Volkswagen', 'ID.3', 'X-456-BB', 0, 1),           -- elektrisch, automaat
+(3, 'Ford', 'Fiesta', 'G-123-AA', 1, 0);              -- benzine, handgeschakeld
 
 -- 2. Dummy data voor `instructeurs`
 -- Let op: instructeurID heeft geen AUTO_INCREMENT in jouw script.
 INSERT INTO `instructeurs` (`instructeurID`, `voornaam`, `tussenvoegsel`, `achternaam`, `email`, `wachtwoord`, `telefoon`, `omschrijving`, `rol`) VALUES
 (10, 'Henk', NULL, 'De Vries', 'henk@rijschooleend.nl', '$2y$10$abcdefghijklmnopqrstuv', '0612345678', 'Ervaren instructeur voor schakelauto\'s.', 'instructeur'),
 (11, 'Anja', 'van', 'Dijk', 'anja@rijschooleend.nl', '$2y$10$abcdefghijklmnopqrstuv', '0623456789', 'Specialist in faalangst en automaatrijden.', 'instructeur'),
-(12, 'Mark', NULL, 'Bakker', 'mark@rijschooleend.nl', '$2y$10$abcdefghijklmnopqrstuv', '0634567890', 'Eigenaar en hoofd administratie.', 'admin');
+(12, 'Mark', NULL, 'Bakker', 'mark@rijschooleend.nl', '$2y$10$abcdefghijklmnopqrstuv', '0634567890', 'Instructeur schakel en automaat.', 'instructeur');
 
 -- 3. Dummy data voor `beschikbaarheid`
 -- Heeft wel AUTO_INCREMENT voor beschikbaarheidID

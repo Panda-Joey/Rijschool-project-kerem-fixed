@@ -1,5 +1,4 @@
 <?php
-session_start();
 
 // Controleren of de student is ingelogd
 if (!isset($_SESSION['userID']) || $_SESSION['rol'] !== 'student') {
@@ -34,7 +33,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Validatie: check of verplichte velden niet leeg zijn
     if (empty($voornaam) || empty($achternaam) || empty($email) || empty($telefoon)) {
-        $error_msg = "❌ Vul aanzienlijk alle verplichte velden in.";
+        $error_msg = "Vul aanzienlijk alle verplichte velden in.";
     } else {
         // Basis query opbouwen
         if (!empty($wachtwoord)) {
@@ -87,21 +86,11 @@ if (!$student) {
 <body>
 <div class="container">
 
-    <div class="dash-header">
-        <div>
-            <h2>👋 <?= htmlspecialchars($naam) ?> <span class="rol-badge badge-student">🚗 Student</span></h2>
-            <span>Rijschool Dashboard > Profiel beheren</span>
-        </div>
-        <a href="../logout.php" class="logout-btn">Uitloggen →</a>
-    </div>
-
-    <div class="top-buttons">
-        <a href="Studentdashboard.php" class="nav-btn" style="text-decoration:none;color:inherit;">Dashboard</a>
-        <a href="kalender.php" class="nav-btn" style="text-decoration:none;color:inherit;">Kalender</a>
-        <!-- <a href="beschikbaarheid.php" class="nav-btn" style="text-decoration:none;color:inherit;">Rooster</a> -->
-        <div class="nav-btn active">Profiel</div>
-        <a href="les_inroosteren.php" class="nav-btn" style="background:#1b2940;color:white;text-decoration:none;">+ Nieuwe les</a>
-    </div>
+    <?php
+    $navActief = 'profiel';
+    $paginaLabel = 'Profiel beheren';
+    require_once 'student_nav.php';
+    ?>
 
     <?php if (!empty($success_msg)): ?>
         <div style="background: #d1e7dd; color: #0f5132; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
@@ -148,7 +137,7 @@ if (!$student) {
 
             <div style="display: flex; gap: 15px; flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 250px;">
-                    <label style="display:block; font-weight:bold; margin-bottom:5px;">Geboortedatum (Niet wijzigbaar)</label>
+                    <label style="display:block; font-weight:bold; margin-bottom:5px;">Geboortedatum</label>
                     <input type="text" value="<?= date('d-m-Y', strtotime($student['geboortedatum'])) ?>" disabled style="width:100%; padding: 10px; border: 1px solid #eee; background:#fafafa; border-radius: 6px; color:#777;">
                 </div>
                 <div style="flex: 1; min-width: 250px;">
@@ -164,11 +153,11 @@ if (!$student) {
 
             <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
 
-            <!-- <div>
+            <div>
                 <h3 style="margin-top:0;"> Wachtwoord Wijzigen</h3>
                 <label style="display:block; font-weight:bold; margin-bottom:5px;">Nieuw Wachtwoord (Laat leeg om niet te wijzigen)</label>
                 <input type="password" name="wachtwoord" placeholder="Nieuw wachtwoord" style="width:100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px;">
-            </div> -->
+            </div>
 
             <div style="margin-top: 10px;">
                 <button type="submit" style="background: #1b2940; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold;">

@@ -2,13 +2,10 @@
 /* ============================================================
    kalender.php — Kalender
    Toont lessen én examens in een maandoverzicht.
-   Toont een maandoverzicht van lessen.
    - Instructeur ziet zijn eigen lessen met studentnamen
    - Student ziet zijn eigen lessen met instructeurnamen
    Rode dag = alle lessen op die dag zijn geannuleerd.
    ============================================================ */
-
-session_start();
 
 /* --- Toegangscontrole --- */
 if (!isset($_SESSION['userID'])) {
@@ -17,8 +14,11 @@ if (!isset($_SESSION['userID'])) {
 }
 
 /* --- Database verbinding --- */
-$conn = new mysqli("mysql", "root", "password", "Eend");
-if ($conn->connect_error) die("Verbinding mislukt: " . $conn->connect_error);
+require_once dirname(__DIR__) . '/includes/database.php';
+require_once dirname(__DIR__) . '/includes/examen.php';
+
+$conn = getDbConnection();
+ensureExamenSchema($conn);
 
 /* --- Sessievariabelen --- */
 $rol    = $_SESSION['rol'];
@@ -131,11 +131,17 @@ while ($rij = $examResult->fetch_assoc()) {
 <body>
 <div class="container">
 
-    <?php require_once 'nav.php'; ?>
+    <?php
+    $navActief = 'kalender';
+    $paginaLabel = 'Kalender';
+    if ($rol === 'instructeur') {
+        require_once 'instructeur_nav.php';
+    } else {
+        require_once 'student_nav.php';
+    }
+    ?>
 
-    
-
-    <!-- ── KALENDER GRID ──────────────────────────────────────── -->
+    <!-- Kalender -->
     <div class="calendar">
 
         <!-- Maandnavigatie: pijl links — maandnaam — pijl rechts -->

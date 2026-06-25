@@ -7,7 +7,7 @@
     h1 { font-size: 20px; margin-bottom: 15px; }
 
     .top-buttons { gap: 12px; margin-bottom: 20px; }
-    .nav-btn { padding: 15px; font-size: 13px; }
+    a.nav-btn { padding: 15px; font-size: 13px; }
 
     /* Kalender volledig formaat */
     .days-header { padding: 6px; gap: 3px; }

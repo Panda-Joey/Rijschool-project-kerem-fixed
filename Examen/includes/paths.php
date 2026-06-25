@@ -59,7 +59,19 @@ function app_url(string $path = ''): string
     return $url . $query;
 }
 
+function src_url(string $path = ''): string
+{
+    $path = ltrim(str_replace('\\', '/', $path), '/');
+
+    return $path === '' ? app_url('src/') : app_url('src/' . $path);
+}
+
+function login_url(): string
+{
+    return src_url('login.php');
+}
+
 function logout_url(): string
 {
-    return app_url('logout.php');
+    return src_url('logout.php');
 }

@@ -1,190 +1,279 @@
 <?php
+require_once dirname(__DIR__) . '/includes/ensure-app.php';
+
 $servername = "mysql";
 $username   = "root";
 $password   = "password";
 $dbname     = "Eend";
 $conn = new mysqli($servername, $username, $password, $dbname);
-if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
 
+$message = '';
+$messageType = '';
 
-$message = "";
+$pakketten = [];
+$pakketten_result = $conn->query("SELECT idlespakket, naam, uren FROM lespakket ORDER BY naam");
+while ($row = $pakketten_result->fetch_assoc()) {
+    $pakketten[] = $row;
+}
 
-// Lespakketten ophalen vanuit de database
-$pakketten_sql = "SELECT idlespakket, naam, uren FROM lespakket";
-$pakketten_result = $conn->query($pakketten_sql);
-
-
-
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-
-    $voornaam = $_POST['voornaam'];
-    $tussenvoegsel = $_POST['tussenvoegsel'];
-    $achternaam = $_POST['achternaam'];
-    $telefoon = $_POST['telefoon'];
-    $geboortedatum = $_POST['geboortedatum'];
-    $email = $_POST['email'];
-    $wachtwoord = password_hash($_POST['wachtwoord'], PASSWORD_DEFAULT);
-    $lespakketID = $_POST['lespakketID'];
-    $beperking = isset($_POST['beperking']) ? (int)$_POST['beperking'] : 0;
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $voornaam      = trim($_POST['voornaam'] ?? '');
+    $tussenvoegsel = trim($_POST['tussenvoegsel'] ?? '');
+    $achternaam    = trim($_POST['achternaam'] ?? '');
+    $telefoon      = trim($_POST['telefoon'] ?? '');
+    $geboortedatum = $_POST['geboortedatum'] ?? '';
+    $email         = trim($_POST['email'] ?? '');
+    $wachtwoord    = password_hash($_POST['wachtwoord'] ?? '', PASSWORD_DEFAULT);
+    $lespakketID   = (int) ($_POST['lespakketID'] ?? 0);
+    $beperking     = isset($_POST['beperking']) ? (int) $_POST['beperking'] : 0;
+    $transmissie   = trim($_POST['transmissie'] ?? 'schakel');
+    if (!in_array($transmissie, ['schakel', 'automaat'], true)) {
+        $transmissie = 'schakel';
+    }
     
-    // Als er geen beperking is, zetten we de omschrijving op null (voor de database)
-    $omschrijving = ($beperking === 1 && !empty(trim($_POST['omschrijving']))) ? trim($_POST['omschrijving']) : null;
+    $omschrijving  = ($beperking === 1 && !empty(trim($_POST['omschrijving'] ?? '')))
+        ? trim($_POST['omschrijving'])
+        : null;
 
-    // Controleer of email al bestaat
     $check = $conn->prepare("SELECT studentID FROM studenten WHERE email = ?");
     $check->bind_param("s", $email);
     $check->execute();
     $result = $check->get_result();
 
     if ($result->num_rows > 0) {
-
-        $message = "
-        <div class='error'>
-            Dit e-mailadres is al geregistreerd.
-        </div>";
-
+        $message = 'Dit e-mailadres is al geregistreerd.';
+        $messageType = 'error';
     } else {
+        require_once dirname(__DIR__) . '/includes/lesvoorkeur.php';
+        ensureLesvoorkeurSchema($conn);
 
-       
         $sql = "INSERT INTO studenten
-        (voornaam, tussenvoegsel, achternaam, email, wachtwoord, telefoon, beperking, omschrijving, geboortedatum, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')";
+            (voornaam, tussenvoegsel, achternaam, email, wachtwoord, telefoon, beperking, omschrijving, geboortedatum, status, transmissie)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)";
 
         $stmt = $conn->prepare($sql);
-
-        
         $stmt->bind_param(
-            "ssssssiss",
+            "ssssssisss",
             $voornaam,
             $tussenvoegsel,
             $achternaam,
             $email,
             $wachtwoord,
             $telefoon,
-            $beperking,     
-            $omschrijving,  
-            $geboortedatum
+            $beperking,
+            $omschrijving,
+            $geboortedatum,
+            $transmissie
         );
 
         if ($stmt->execute()) {
-
             $studentID = $conn->insert_id;
 
-            $sql2 = "INSERT INTO student_lespakket
-            (studentID, idlespakket, overige_uren)
-            SELECT ?, idlespakket, uren
-            FROM lespakket
-            WHERE idlespakket = ?";
-
+            /*
+            $sql2 = "INSERT INTO student_lespakket (studentID, idlespakket, overige_uren)
+                SELECT ?, idlespakket, uren FROM lespakket WHERE idlespakket = ?";
             $stmt2 = $conn->prepare($sql2);
             $stmt2->bind_param("ii", $studentID, $lespakketID);
             $stmt2->execute();
+            $stmt2->close();*/
 
-            $message = "
-            <div class='success'>
-                Je aanmelding is ontvangen. De rijschoolhouder moet je account eerst activeren.
-            </div>";
+            
+            $sql2 = "
+            INSERT INTO student_lespakket (studentID, idlespakket, overige_uren, bedrag)
+            SELECT ?, idlespakket, uren, prijs
+            FROM lespakket
+            WHERE idlespakket = ?
+            ";
+            $stmt2 = $conn->prepare($sql2);
+            $stmt2->bind_param("ii", $studentID, $lespakketID);
+            $stmt2->execute();
+            $stmt2->close(); 
 
+            $message = 'Je aanmelding is ontvangen. De rijschoolhouder moet je account eerst activeren.';
+            $messageType = 'success';
         } else {
-
-            $message = "
-            <div class='error'>
-                Er ging iets fout bij het opslaan.
-            </div>";
+            $message = 'Er ging iets fout bij het opslaan.';
+            $messageType = 'error';
         }
+        $stmt->close();
     }
+    $check->close();
 }
 
+$active = 'aanmelden';
 ?>
-
-
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-    <style>
-        
-        #beperking_details {
-            display: none;
-            margin-top: 10px;
-        }
-    </style>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Aanmelden</title>
-<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aanmelden — <?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></title>
+    <link rel="stylesheet" href="<?= htmlspecialchars(app_url('assets/css/login.css'), ENT_QUOTES, 'UTF-8') ?>">
 </head>
-<body class="login-page">
-<div class="login-box">
-    <h1>🚗 Rijschool</h1>
-    <p class="sub">Meld je hier aan om leerling te worden van onze rijschool</p>
+<body>
+    <?php include dirname(__DIR__) . '/views/partials/header.php'; ?>
 
-    <?php echo $message; ?>
-
-    <form action="aanmelden.php" method="post">
-         <div class="form-group">
-         <label for="persoonlijke_gegevens" style="display:block; text-align:left; margin: 10px 0 2px 5px; font-size:14px; color:#666;">Persoonlijke gegevens:</label>
-        <input type="text" name="voornaam" placeholder="Voornaam" required>
-        <input type="text" name="tussenvoegsel" placeholder="Tussenvoegsel (optioneel)">
-        <input type="text" name="achternaam" placeholder="Achternaam" required>        
-        <input type="tel" name="telefoon" placeholder="Telefoonnummer" required>
-        <!-- <input type="text" name="beperking" placeholder="Beperking (Geen beperking vul in geen)" required> -->
-         <p>Heb je een beperking?</p>
-            
-
-            <label>
-                <input type="radio" name="beperking" value="0" onclick="toggleBeperking(false)" checked> Nee
-            </label>
-            <label>
-                <input type="radio" name="beperking" value="1" onclick="toggleBeperking(true)"> Ja
-            </label>
-
-
-            <div id="beperking_details">
-                <label for="omschrijving" >Geef eventueel een korte toelichting:</label><br>
-                <textarea name="omschrijving" id="omschrijving" rows="4" cols="40" placeholder="Bijvoorbeeld: Dyslexie, faalangst..."></textarea>
+    <main class="page page--with-header aanmelden">
+        <div class="card">
+            <div class="card-header">
+                <h1>Aanmelden</h1>
+                <p>Word leerling bij <?= htmlspecialchars(APP_NAME, ENT_QUOTES, 'UTF-8') ?></p>
             </div>
 
-        <script>
-                function toggleBeperking(isJa) {
-                    const detailsDiv = document.getElementById('beperking_details');
-                    const omschrijvingInput = document.getElementById('omschrijving');
-                    
-                    if (isJa) {
-                        detailsDiv.style.display = 'block';
-                        omschrijvingInput.required = true;
-                    } else {
-                        detailsDiv.style.display = 'none';
-                        omschrijvingInput.required = false;
-                        omschrijvingInput.value = '';
-                    }
-                }
-                </script>
+            <div class="card-body">
+                <?php if ($message !== ''): ?>
+                    <div class="<?= $messageType === 'success' ? 'success' : 'error' ?>">
+                        <?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?>
+                    </div>
+                <?php endif; ?>
 
-        <label for="geboortedatum" style="display:block; text-align:left; margin: 10px 0 2px 5px; font-size:14px; color:#666;">Geboortedatum:</label>
-        <input type="date" id="geboortedatum" name="geboortedatum" required><br>
+                <?php if ($messageType !== 'success'): ?>
+                <form method="post" action="<?= htmlspecialchars(src_url('aanmelden.php'), ENT_QUOTES, 'UTF-8') ?>">
 
-         <label for="email" style="display:block; text-align:left; margin: 10px 0 2px 5px; font-size:14px; color:#666;">E-mailadres:</label>
-         
-        <input type="email" name="email" placeholder="E-mailadres" required>
-        <input type="password" name="wachtwoord" placeholder="Wachtwoord" required>
-        
-        <label for="lespakketID" style="display:block; text-align:left; margin: 10px 0 2px 5px; font-size:14px; color:#666;">Kies je lespakket:</label>
-        <select name="lespakketID" id="lespakketID" required style="width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #ccc;">
-            <option value="">-- Selecteer een pakket --</option>
-            <?php 
-            if ($pakketten_result && $pakketten_result->num_rows > 0) {
-                while($row = $pakketten_result->fetch_assoc()) {
-                    echo "<option value='" . $row['idlespakket'] . "'>" . htmlspecialchars($row['naam']) . " (" . $row['uren'] . " uur)</option>";
-                }
-            } else {
-                echo "<option value=''>Geen pakketten beschikbaar</option>";
-            }
-            ?>
-        </select>
+                    <section class="form-section">
+                        <p class="form-section__title">Persoonlijke gegevens</p>
+
+                        <div class="field">
+                            <label for="voornaam">Voornaam</label>
+                            <input type="text" id="voornaam" name="voornaam" required
+                                value="<?= htmlspecialchars($_POST['voornaam'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                        </div>
+
+                        <div class="field">
+                            <label for="tussenvoegsel">Tussenvoegsel <span class="form-note">(optioneel)</span></label>
+                            <input type="text" id="tussenvoegsel" name="tussenvoegsel"
+                                value="<?= htmlspecialchars($_POST['tussenvoegsel'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                        </div>
+
+                        <div class="field">
+                            <label for="achternaam">Achternaam</label>
+                            <input type="text" id="achternaam" name="achternaam" required
+                                value="<?= htmlspecialchars($_POST['achternaam'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                        </div>
+
+                        <div class="field">
+                            <label for="telefoon">Telefoonnummer</label>
+                            <input type="tel" id="telefoon" name="telefoon" required
+                                value="<?= htmlspecialchars($_POST['telefoon'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                        </div>
+
+                        <div class="field">
+                            <label for="geboortedatum">Geboortedatum</label>
+                            <input type="date" id="geboortedatum" name="geboortedatum" required
+                                value="<?= htmlspecialchars($_POST['geboortedatum'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                        </div>
+                    </section>
+
+                    <section class="form-section">
+                        <p class="form-section__title">Gespecialiseerd in</p>
+                        <p class="form-note">In wat voor soort auto wil je rijlessen volgen?</p>
+
+                        <div class="radio-group">
+                            <label>
+                                <input type="radio" name="transmissie" value="schakel" required
+                                    <?= ($_POST['transmissie'] ?? 'schakel') === 'schakel' ? 'checked' : '' ?>>
+                                Handgeschakeld
+                            </label>
+                            <label>
+                                <input type="radio" name="transmissie" value="automaat"
+                                    <?= ($_POST['transmissie'] ?? '') === 'automaat' ? 'checked' : '' ?>>
+                                Automaat
+                            </label>
+                        </div>
+                    </section>
+
+                    <section class="form-section">
+                        <p class="form-section__title">Beperking</p>
+                        <p class="form-note">Heb je een beperking waar de instructeur rekening mee moet houden?</p>
+
+                        <div class="radio-group">
+                            <label>
+                                <input type="radio" name="beperking" value="0"
+                                    <?= ($_POST['beperking'] ?? '0') === '0' ? 'checked' : '' ?>
+                                    onchange="toggleBeperking(false)">
+                                Nee
+                            </label>
+                            <label>
+                                <input type="radio" name="beperking" value="1"
+                                    <?= ($_POST['beperking'] ?? '') === '1' ? 'checked' : '' ?>
+                                    onchange="toggleBeperking(true)">
+                                Ja
+                            </label>
+                        </div>
+
+                        <div id="beperking_details" class="<?= ($_POST['beperking'] ?? '') === '1' ? 'is-visible' : '' ?>">
+                            <div class="field">
+                                <label for="omschrijving">Toelichting</label>
+                                <textarea name="omschrijving" id="omschrijving"
+                                    placeholder="Bijvoorbeeld: dyslexie, faalangst..."><?= htmlspecialchars($_POST['omschrijving'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="form-section">
+                        <p class="form-section__title">Account &amp; pakket</p>
+
+                        <div class="field">
+                            <label for="email">E-mailadres</label>
+                            <input type="email" id="email" name="email" required autocomplete="email"
+                                value="<?= htmlspecialchars($_POST['email'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                        </div>
+
+                        <div class="field">
+                            <label for="wachtwoord">Wachtwoord</label>
+                            <input type="password" id="wachtwoord" name="wachtwoord" required autocomplete="new-password">
+                        </div>
+
+                        <div class="field">
+                            <label for="lespakketID">Lespakket</label>
+                            <select name="lespakketID" id="lespakketID" required>
+                                <option value="">— Selecteer een pakket —</option>
+                                <?php foreach ($pakketten as $pakket): ?>
+                                    <option value="<?= (int) $pakket['idlespakket'] ?>"
+                                        <?= (string) ($_POST['lespakketID'] ?? '') === (string) $pakket['idlespakket'] ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($pakket['naam'], ENT_QUOTES, 'UTF-8') ?>
+                                        (<?= (int) $pakket['uren'] ?> uur)
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </section>
+
+                    <button type="submit" class="btn btn-primary">Aanmelden</button>
+                </form>
+                <?php endif; ?>
+
+                <a href="<?= htmlspecialchars(src_url('homepage.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn btn-secondary btn-link">
+                    Terug naar homepage
+                </a>
+                <a href="<?= htmlspecialchars(login_url(), ENT_QUOTES, 'UTF-8') ?>" class="btn btn-secondary btn-link">
+                    Al een account? Inloggen
+                </a>
+            </div>
         </div>
-        
-        <button class="btn-login" type="submit">Aanmelden</button>
-    </form>
-</div>
+    </main>
+
+    <script>
+        function toggleBeperking(isJa) {
+            const detailsDiv = document.getElementById('beperking_details');
+            const omschrijvingInput = document.getElementById('omschrijving');
+
+            if (isJa) {
+                detailsDiv.classList.add('is-visible');
+                omschrijvingInput.required = true;
+            } else {
+                detailsDiv.classList.remove('is-visible');
+                omschrijvingInput.required = false;
+                omschrijvingInput.value = '';
+            }
+        }
+
+        if (document.querySelector('input[name="beperking"][value="1"]:checked')) {
+            toggleBeperking(true);
+        }
+    </script>
 </body>
 </html>
