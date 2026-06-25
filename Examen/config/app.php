@@ -11,14 +11,26 @@ const ROLES = [
     'eigenaar'    => 'Eigenaar',
 ];
 
-// Demo-accounts — later uit database; rol hoort bij het account, niet bij een knop
-const DEMO_PASSWORD_HASH = '$2y$10$0ABjfOmLaElKfi6ZMGUdFe71uGEc7iRe4zXa9ovSZ2uItbONXRTYm';
+// Demo-accounts — koppel aan userID in database (zie init.sql / team-dump)
+const DEMO_PASSWORD = 'wachtwoord123';
+const DEMO_PASSWORD_HASH = '$2y$10$73PovOrwuoysRFRxkGX/C.R2FzkAb6AEEuWcBNXM3zZeeYmQIyRbC';
 
 const DEMO_USERS = [
-    // userID = id in database (init.sql)
-    'leerling@rijschool.nl'    => ['role' => 'leerling',    'userID' => 1],
-    'instructeur@rijschool.nl' => ['role' => 'instructeur', 'userID' => 10],
-    'eigenaar@rijschool.nl'    => ['role' => 'eigenaar',    'userID' => 13],
+    'sharanprive67@gmail.com' => [
+        'role'   => 'leerling',
+        'userID' => 1,
+        'naam'   => 'Sharan Zwart',
+    ],
+    'kerem@rijschooleend.nl' => [
+        'role'   => 'instructeur',
+        'userID' => 1,
+        'naam'   => 'Kerem Blank',
+    ],
+    'admin@rijschooleend.nl' => [
+        'role'   => 'eigenaar',
+        'userID' => 3,
+        'naam'   => 'Admin Portaal',
+    ],
 ];
 
 // Zet op false vóór livegang

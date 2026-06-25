@@ -16,9 +16,8 @@ $conn = getDbConnection();?>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instructeur Dashboard — <?= htmlspecialchars($naam) ?></title>
+    <title>Mijn Studenten — <?= htmlspecialchars($naam) ?></title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="css/AD.css">
 </head>
 <body>
 
@@ -30,82 +29,69 @@ $conn = getDbConnection();?>
     require_once 'instructeur_nav.php';
     ?>
 
+    <section class="studenten-overzicht">
+        <h2>Mijn Studenten Overzicht</h2>
 
-<div class="schema">
-    
-    <h2>Mijn Studenten Overzicht</h2>
+        <div class="studenten-tabel-wrap">
+            <table class="studenten-tabel">
+                <thead>
+                    <tr>
+                        <th>Naam</th>
+                        <th>Email</th>
+                        <th>Telefoon</th>
+                        <th>Lespakket</th>
+                        <th>Actief</th>
+                        <th>Beperkt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php
+                $statusFilter = $_GET['gebruiker_filter'] ?? '';
 
-    <!-- <form method="GET" class="filter-form">
-        <label for="filter_status">Kies je gebruiker:</label>
-        <select name="gebruiker_filter" id="filter_status">
-            <option value="">Alle eigen studenten</option>
-            <option value="actieve-studenten" <?= ($_GET['gebruiker_filter'] ?? '') === 'actieve-studenten' ? 'selected' : '' ?>>Actieve studenten</option>
-            <option value="niewe-studenten" <?= ($_GET['gebruiker_filter'] ?? '') === 'niewe-studenten' ? 'selected' : '' ?>>Aangemelden studenten</option>
-        </select>
-        <button type="submit">Filter</button>
-    </form> -->
+                $baseQuery = "SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, l.naam AS lespakket
+                              FROM studenten s
+                              INNER JOIN studenten_has_instructeurs shi ON s.studentID = shi.studentID
+                              LEFT JOIN student_lespakket sl ON s.studentID = sl.studentID
+                              LEFT JOIN lespakket l ON sl.idlespakket = l.idlespakket
+                              WHERE shi.instructeurID = ?";
 
-    <table border="1">
-        <thead>
-            <tr>
-                <th>Naam</th>
-                <th>Email</th>
-                <th>Telefoon</th>
-                <th>Lespakket</th>
-                <th>Actief</th>
-                <th>Beperkt</th>
-            </tr>
-        </thead>
-        <tbody>
-        <?php
-        $statusFilter = $_GET['gebruiker_filter'] ?? '';
+                if ($statusFilter === 'actieve-studenten') {
+                    $query = $baseQuery . " AND s.status = 'actief'";
+                } else {
+                    $query = $baseQuery;
+                }
 
-        // Basis query die sowieso filtert op de studenten van deze specifieke instructeur
-        $baseQuery = "SELECT s.studentID, s.status, s.voornaam, s.tussenvoegsel, s.achternaam, s.email, s.telefoon, s.beperking, l.naam AS lespakket
-                      FROM studenten s
-                      INNER JOIN studenten_has_instructeurs shi ON s.studentID = shi.studentID
-                      LEFT JOIN student_lespakket sl ON s.studentID = sl.studentID
-                      LEFT JOIN lespakket l ON sl.idlespakket = l.idlespakket
-                      WHERE shi.instructeurID = ?";
+                $stmt = $conn->prepare($query);
+                $stmt->bind_param("i", $instructeurID);
+                $stmt->execute();
+                $result = $stmt->get_result();
 
-        if ($statusFilter === 'actieve-studenten') {
-            $query = $baseQuery . " AND s.status = 'actief'";
-        // } elseif ($statusFilter === 'niewe-studenten') {
-        //     $query = $baseQuery . " AND s.status = 'pending'";
-        } else {
-            $query = $baseQuery;
-        }
+                if (!$result) {
+                    echo "<tr><td colspan='6' style='color:red; font-weight:bold;'>Database Fout: " . htmlspecialchars($conn->error) . '</td></tr>';
+                } elseif ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        $volledigeNaam = trim(($row['voornaam'] ?? '') . ' ' . ($row['tussenvoegsel'] ?? '') . ' ' . ($row['achternaam'] ?? ''));
 
-        // Gebruik Prepared Statements voor de veiligheid en om de instructeurID te binden
-        $stmt = $conn->prepare($query);
-        $stmt->bind_param("i", $instructeurID);
-        $stmt->execute();
-        $result = $stmt->get_result();
+                        echo '<tr>';
+                        echo '<td>' . htmlspecialchars($volledigeNaam) . '</td>';
+                        echo '<td>' . htmlspecialchars($row['email'] ?? '') . '</td>';
+                        echo '<td>' . htmlspecialchars($row['telefoon'] ?? '') . '</td>';
+                        echo '<td>' . htmlspecialchars($row['lespakket'] ?? '-') . '</td>';
 
-        if (!$result) {
-            echo "<tr><td colspan='6' style='color:red; font-weight:bold;'>Database Fout: " . htmlspecialchars($conn->error) . '</td></tr>';
-        } elseif ($result->num_rows > 0) {
-            while ($row = $result->fetch_assoc()) {
-                $volledigeNaam = trim(($row['voornaam'] ?? '') . ' ' . ($row['tussenvoegsel'] ?? '') . ' ' . ($row['achternaam'] ?? ''));
+                        $dbStatus = $row['status'] ?? 'pending';
+                        echo '<td>' . ($dbStatus === 'actief' ? 'Ja' : 'Nee') . '</td>';
+                        echo '<td>' . (isset($row['beperking']) && $row['beperking'] == 1 ? 'Ja' : 'Nee') . '</td>';
+                        echo '</tr>';
+                    }
+                } else {
+                    echo "<tr><td colspan='6'>Geen studenten aan jou gekoppeld gevonden.</td></tr>";
+                }
+                ?>
+                </tbody>
+            </table>
+        </div>
+    </section>
 
-                echo '<tr>';
-                echo '<td>' . htmlspecialchars($volledigeNaam) . '</td>';
-                echo '<td>' . htmlspecialchars($row['email'] ?? '') . '</td>';
-                echo '<td>' . htmlspecialchars($row['telefoon'] ?? '') . '</td>';
-                echo '<td>' . htmlspecialchars($row['lespakket'] ?? '-') . '</td>';
-
-                $dbStatus = $row['status'] ?? 'pending';
-                echo '<td>' . ($dbStatus === 'actief' ? 'Ja' : 'Nee') . '</td>';
-                
-                echo '<td>' . (isset($row['beperking']) && $row['beperking'] == 1 ? 'Ja' : 'Nee') . '</td>';
-                echo '</tr>';
-            }
-        } else {
-            echo "<tr><td colspan='6'>Geen studenten aan jou gekoppeld gevonden.</td></tr>";
-        }
-        ?>
-        </tbody>
-    </table>
 </div>
 
 </body>

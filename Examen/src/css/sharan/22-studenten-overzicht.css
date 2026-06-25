@@ -1,0 +1,46 @@
+/* Mijn Studenten-overzicht (instructeur) */
+
+.studenten-overzicht {
+    margin-top: 16px;
+}
+
+.studenten-overzicht h2 {
+    font-size: 16px;
+    margin: 0 0 12px;
+    color: #1b2940;
+}
+
+.studenten-tabel-wrap {
+    overflow-x: auto;
+    background: #fff;
+    border: 2px solid #1b2940;
+}
+
+.studenten-tabel {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.studenten-tabel th,
+.studenten-tabel td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e2e8f0;
+    text-align: left;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.studenten-tabel th {
+    background: #1b2940;
+    color: #fff;
+    font-weight: bold;
+}
+
+.studenten-tabel tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.studenten-tabel tbody tr:hover {
+    background: #f8f9fb;
+}

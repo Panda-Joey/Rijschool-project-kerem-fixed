@@ -60,35 +60,34 @@
                         <div class="test-box">
                             <p class="test-box__title">Test — direct inloggen</p>
                             <div class="test-box__buttons">
+                                <?php
+                                $testRoles = [
+                                    'leerling'    => 'Log in als Leerling',
+                                    'instructeur' => 'Log in als Instructeur',
+                                    'eigenaar'    => 'Log in als Eigenaar',
+                                ];
+                                foreach ($testRoles as $role => $label):
+                                    $testEmail = null;
+                                    foreach (DEMO_USERS as $email => $user) {
+                                        if (($user['role'] ?? '') === $role) {
+                                            $testEmail = $email;
+                                            break;
+                                        }
+                                    }
+                                    if ($testEmail === null) {
+                                        continue;
+                                    }
+                                ?>
                                 <div class="test-user">
-                                    <a href="<?= htmlspecialchars(login_url() . '?test=leerling', ENT_QUOTES, 'UTF-8') ?>" class="btn btn-test">Log in als Leerling</a>
+                                    <a href="<?= htmlspecialchars(login_url() . '?test=' . $role, ENT_QUOTES, 'UTF-8') ?>" class="btn btn-test"><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></a>
                                     <div class="test-user__creds">
-                                        <span><strong>Email:</strong> <code>leerling@rijschool.nl</code></span>
-                                        <span><strong>Wachtwoord:</strong> <code>wachtwoord123</code></span>
-                                        <button type="button" class="copy-btn" data-copy="leerling@rijschool.nl">Kopieer mail</button>
-                                        <button type="button" class="copy-btn" data-copy="wachtwoord123">Kopieer wachtwoord</button>
+                                        <span><strong>Email:</strong> <code><?= htmlspecialchars($testEmail, ENT_QUOTES, 'UTF-8') ?></code></span>
+                                        <span><strong>Wachtwoord:</strong> <code><?= htmlspecialchars(DEMO_PASSWORD, ENT_QUOTES, 'UTF-8') ?></code></span>
+                                        <button type="button" class="copy-btn" data-copy="<?= htmlspecialchars($testEmail, ENT_QUOTES, 'UTF-8') ?>">Kopieer mail</button>
+                                        <button type="button" class="copy-btn" data-copy="<?= htmlspecialchars(DEMO_PASSWORD, ENT_QUOTES, 'UTF-8') ?>">Kopieer wachtwoord</button>
                                     </div>
                                 </div>
-
-                                <div class="test-user">
-                                    <a href="<?= htmlspecialchars(login_url() . '?test=instructeur', ENT_QUOTES, 'UTF-8') ?>" class="btn btn-test">Log in als Instructeur</a>
-                                    <div class="test-user__creds">
-                                        <span><strong>Email:</strong> <code>instructeur@rijschool.nl</code></span>
-                                        <span><strong>Wachtwoord:</strong> <code>wachtwoord123</code></span>
-                                        <button type="button" class="copy-btn" data-copy="instructeur@rijschool.nl">Kopieer mail</button>
-                                        <button type="button" class="copy-btn" data-copy="wachtwoord123">Kopieer wachtwoord</button>
-                                    </div>
-                                </div>
-
-                                <div class="test-user">
-                                    <a href="<?= htmlspecialchars(login_url() . '?test=eigenaar', ENT_QUOTES, 'UTF-8') ?>" class="btn btn-test">Log in als Eigenaar</a>
-                                    <div class="test-user__creds">
-                                        <span><strong>Email:</strong> <code>eigenaar@rijschool.nl</code></span>
-                                        <span><strong>Wachtwoord:</strong> <code>wachtwoord123</code></span>
-                                        <button type="button" class="copy-btn" data-copy="eigenaar@rijschool.nl">Kopieer mail</button>
-                                        <button type="button" class="copy-btn" data-copy="wachtwoord123">Kopieer wachtwoord</button>
-                                    </div>
-                                </div>
+                                <?php endforeach; ?>
                             </div>
                         </div>
                     <?php endif; ?>
