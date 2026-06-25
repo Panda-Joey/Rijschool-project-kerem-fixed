@@ -20,7 +20,7 @@ if (!isset($_SESSION['userID'])) {
 }
 
 /* --- Database verbinding --- */
-$conn = new mysqli("127.0.0.1", "root", "password", "Eend");
+$conn = new mysqli("mysql", "root", "password", "Eend");
 if ($conn->connect_error) die("Verbinding mislukt: " . $conn->connect_error);
 
 /* --- Sessievariabelen --- */
@@ -107,7 +107,8 @@ if ($rol === 'instructeur') {
     while ($rij = $r->fetch_assoc()) $studenten[] = $rij;
 }
 
-/* Auto's: instructeur gebruikt zijn vaste auto, student gebruikt auto van instructeur */
+/* Auto's: instructeur gebruikt zijn vaste auto, student gebruikt
+   automatisch een auto met dezelfde transmissie als hijzelf rijdt. */
 $autos = [];
 if ($rol === 'instructeur' && $instrAuto) {
     $autos[] = $instrAuto; // instructeur ziet alleen zijn eigen auto
@@ -116,7 +117,20 @@ if ($rol === 'instructeur' && $instrAuto) {
     $r = $conn->query("SELECT * FROM Autos ORDER BY merk");
     while ($rij = $r->fetch_assoc()) $autos[] = $rij;
 }
-/* Voor student wordt de auto van de instructeur automatisch gebruikt (hidden input) */
+
+/* Voor een student: zoek een auto met exact dezelfde transmissie als de student.
+   Dit garandeert dat een schakelstudent altijd een schakelauto krijgt en een
+   automaatstudent altijd een automaat, los van welke auto de instructeur zelf gebruikt. */
+$studentAutoID = null;
+if ($rol === 'student') {
+    $r = $conn->query("SELECT autoID FROM Autos WHERE transmissie = '$transmissie' LIMIT 1");
+    if ($r && $rij = $r->fetch_assoc()) {
+        $studentAutoID = $rij['autoID'];
+    } elseif ($gekoppeldeInstructeur && $gekoppeldeInstructeur['autoID']) {
+        /* Geen passende auto gevonden: terugval op de auto van de instructeur */
+        $studentAutoID = $gekoppeldeInstructeur['autoID'];
+    }
+}
 
 /* Gekozen datum: uit URL (?datum=...) of POST of morgen als standaard */
 $gekozenDatum = $_GET['datum'] ?? $_POST['lesDatum'] ?? date('Y-m-d', strtotime('+1 day'));
@@ -223,7 +237,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $tijd        = $conn->real_escape_string($_POST['lestijd']);
     $instrID     = intval($_POST['instructeurID']);
     $studentID   = ($rol === 'instructeur') ? intval($_POST['studentID']) : $userID;
-    $autoID      = intval($_POST['autoID']);
+
+    /* Auto-toewijzing: instructeur kiest zelf, maar bij een student wordt de
+       auto altijd opnieuw bepaald aan de hand van zijn eigen transmissie —
+       een gemanipuleerde POST-waarde kan dit niet overschrijven. */
+    if ($rol === 'instructeur') {
+        $autoID = intval($_POST['autoID']);
+    } else {
+        $rAuto  = $conn->query("SELECT autoID FROM Autos WHERE transmissie = '$transmissie' LIMIT 1");
+        $autoID = ($rAuto && $rij = $rAuto->fetch_assoc()) ? intval($rij['autoID']) : intval($_POST['autoID'] ?? 0);
+    }
+
     $ophaal      = $conn->real_escape_string(trim($_POST['ophaalLocatie']));
     // Student mag geen leerdoel kiezen — altijd 'Nader te bepalen door instructeur'
     // Instructeur kiest zelf het doel via de dropdown
@@ -540,11 +564,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php foreach ($studenten as $st):
                             $tv      = $st['tussenvoegsel'] ? $st['tussenvoegsel'] . ' ' : '';
                             $vol     = $st['voornaam'] . ' ' . $tv . $st['achternaam'];
-                            $tLabel  = ucfirst($st['transmissie'] ?? '');
+                            $tLabel  = $st['transmissie'] ?? '';
                         ?>
                             <option value="<?= $st['studentID'] ?>"
                                 <?= (isset($_POST['studentID']) && $_POST['studentID'] == $st['studentID']) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($vol) ?> (<?= $tLabel ?>)
+                                <?= htmlspecialchars($vol) ?> - <?= htmlspecialchars($tLabel) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -611,8 +635,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?php endif; ?>
                 </div>
                 <?php else: ?>
-                    <!-- Student gebruikt automatisch de auto van zijn instructeur -->
-                    <input type="hidden" name="autoID" value="<?= $instrData[$gekoppeldeInstructeur['instructeurID'] ?? 0]['autoID'] ?? ($autos[0]['autoID'] ?? 1) ?>">
+                    <!-- Student krijgt automatisch een auto met dezelfde transmissie als zichzelf -->
+                    <input type="hidden" name="autoID" value="<?= $studentAutoID ?? 1 ?>">
                 <?php endif; ?>
 
                 <!-- Foutmelding bij validatiefout -->
