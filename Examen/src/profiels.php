@@ -31,6 +31,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $omschrijving = trim($_POST['omschrijving']);
     $wachtwoord = $_POST['wachtwoord'];
 
+    // ── Formulierverwerking (Gegevens updaten) ───────────────────────────
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $voornaam = trim($_POST['voornaam']);
+    $tussenvoegsel = trim($_POST['tussenvoegsel']);
+    $achternaam = trim($_POST['achternaam']);
+    $email = trim($_POST['email']);
+    $telefoon = trim($_POST['telefoon']);
+    $omschrijving = trim($_POST['omschrijving']);
+    $wachtwoord = $_POST['wachtwoord'];
+
     // Validatie: check of verplichte velden niet leeg zijn
     if (empty($voornaam) || empty($achternaam) || empty($email) || empty($telefoon)) {
         $error_msg = "Vul aanzienlijk alle verplichte velden in.";
@@ -47,20 +57,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $stmt->bind_param("ssssssi", $voornaam, $tussenvoegsel, $achternaam, $email, $telefoon, $omschrijving, $userID);
         }
 
-        if ($stmt->execute()) {
-            $success_msg = " Je profiel is succesvol bijgewerkt!";
-            // Update de sessienaam voor het geval dat de voornaam/achternaam is veranderd
-            $_SESSION['naam'] = trim("$voornaam $tussenvoegsel $achternaam");
-            $naam = $_SESSION['naam'];
-        } else {
-            if ($conn->errno == 1062) { // Dubbele email constraint
-                $error_msg = " Dit e-mailadres is al in gebruik.";
+        // Gebruik try-catch om de database exception op te vangen
+        try {
+            if ($stmt->execute()) {
+                $success_msg = "Je profiel is succesvol bijgewerkt!";
+                // Update de sessienaam voor het geval dat de voornaam/achternaam is veranderd
+                $_SESSION['naam'] = trim("$voornaam $tussenvoegsel $achternaam");
+                $naam = $_SESSION['naam'];
             } else {
-                $error_msg = " Er ging iets mis bij het updaten: " . $conn->error;
+                $error_msg = "Er ging iets mis bij het updaten.";
+            }
+        } catch (mysqli_sql_exception $e) {
+            // Controleer of de foutcode staat voor een unieke constraint (1062)
+            if ($e->getCode() == 1062) {
+                $error_msg = "Dit e-mailadres is al in gebruik.";
+            } else {
+                $error_msg = "Er ging iets mis bij het updaten: " . $e->getMessage();
             }
         }
+        
         $stmt->close();
     }
+    }
+
 }
 
 // ── Huidige Studentgegevens Ophalen ──────────────────────────────────
