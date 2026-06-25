@@ -32,7 +32,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $wachtwoord = $_POST['wachtwoord'];
 
     if (empty($voornaam) || empty($achternaam) || empty($email) || empty($telefoon)) {
-        $error_msg = "❌ Vul alle verplichte velden in.";
+        $error_msg = " Vul alle verplichte velden in.";
     } else {
         if (!empty($wachtwoord)) {
             $hashed_password = password_hash($wachtwoord, PASSWORD_BCRYPT);
@@ -119,7 +119,7 @@ if (!$instructeur) {
             <div style="display: flex; gap: 15px; flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 250px;">
                     <label style="display:block; font-weight:bold; margin-bottom:5px;">E-mailadres *</label>
-                    <input type="email" name="email" value="<?= htmlspecialchars($instructeur['email']) ?>" required style="width:100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px;">
+                    <input type="email" name="email" value="<?= htmlspecialchars($instructeur['email']) ?>" disabled style="width:100%; padding: 10px; border: 1px solid #eee; background:#fafafa; border-radius: 6px; color:#777; font-weight: bold;">
                 </div>
                 <div style="flex: 1; min-width: 250px;">
                     <label style="display:block; font-weight:bold; margin-bottom:5px;">Telefoonnummer *</label>

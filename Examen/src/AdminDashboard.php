@@ -28,7 +28,7 @@ if ($result && $row = $result->fetch_assoc()) {
 }
 
 // meldingen toevoegen
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['titel'])) {
 
     $titel = $_POST['titel'];
     $bericht = $_POST['bericht'];
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     $stmt->bind_param("sss", $titel, $bericht, $doelgroep);
     $stmt->execute();
-
+    $stmt->close();
 }
 
 // omzet uitrekenen 
@@ -79,10 +79,11 @@ $result = mysqli_query($conn, $sql);
 $row = mysqli_fetch_assoc($result);
 
 $slagingspercentage = $row['slagingspercentage'];
+
+//mededelingen ophalen
 $stmtMededelingen = $conn->prepare("
-    SELECT titel, bericht, datum_gemaakt 
+    SELECT meldingID, titel, bericht, datum_gemaakt 
     FROM meldingen 
-    WHERE ontvanger_type = 'admin' 
     ORDER BY datum_gemaakt DESC 
     LIMIT 5
 ");
@@ -94,6 +95,18 @@ while ($row = $resMededelingen->fetch_assoc()) {
     $mededelingen[] = $row;
 }
 $stmtMededelingen->close();
+
+//meldingen verwijderen
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
+    $deleteID = intval($_POST['melding_id']);
+    $stmtDelete = $conn->prepare("DELETE FROM meldingen WHERE meldingID = ?");
+    $stmtDelete->bind_param("i", $deleteID);
+    $stmtDelete->execute();
+    $stmtDelete->close();
+    
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit;
+}
 
 ?>
 
@@ -120,8 +133,6 @@ $stmtMededelingen->close();
     <div class="nav-grid">
         <a href="AdminDashboard.php" class="nav-card active">Dashboard</a>
         <a href="AdminGebruikers.php" class="nav-card">Gebruikers</a>
-        <a href="#" class="nav-card">Rooster</a>
-        <a href="#" class="nav-card">Profiel</a>
         <a href="AdminWagenpark.php" class="nav-card">Wagenpark</a>
     </div>
 </div>
@@ -180,6 +191,13 @@ $stmtMededelingen->close();
                     <p style="margin: 0; color: #1e293b; font-size: 14px; line-height: 1.5; white-space: pre-line;">
                         <?= htmlspecialchars($item['bericht']) ?>
                     </p>
+                    <form method="POST" onsubmit="return confirm('Weet je zeker dat je deze mededeling wilt verwijderen?');" style="margin-top: 10px;">
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="melding_id" value="<?= $item['meldingID'] ?>">
+                        <button type="submit" style="background-color: #ef4444; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                            Verwijderen
+                        </button>
+                    </form>
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>

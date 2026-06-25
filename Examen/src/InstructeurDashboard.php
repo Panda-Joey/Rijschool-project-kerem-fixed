@@ -152,7 +152,7 @@ $stmtMededelingen->close();
 
 // ── Stats ────────────────────────────────────────────────────────────
 $totaalLessen = count($lessen);
-$totaalUren = $totaalLessen; // Elke les = 1 uur
+$totaalUren = $totaalLessen * 2; // Elke les duurt 2 uur
 ?>
 <!DOCTYPE html>
 <html lang="nl">
@@ -333,8 +333,10 @@ $totaalUren = $totaalLessen; // Elke les = 1 uur
                             <?php else: ?>
                                 <form method="POST" style="margin-bottom:10px;">
                                     <input type="hidden" name="opmerking_lesID" value="<?= (int) $les['lesID'] ?>">
-                                    <textarea name="opmerking" rows="4" style="width:100%;margin-bottom:5px;"
+
+                                    <textarea name="opmerking" rows="4" style="width:100%;margin-bottom:5px;" maxlength="300"
                                         placeholder="Opmerkingen over deze les..."><?= htmlspecialchars($les['opmerkingen'] ?? '') ?></textarea>
+
                                     <button type="submit" class="edit">
                                         💾 Opslaan
                                     </button>

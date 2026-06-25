@@ -1,6 +1,6 @@
 <?php
 
-const APP_NAME = 'Rijschool';
+const APP_NAME = 'Vierkante Wielen';
 
 /** Sessie verloopt na 15 minuten zonder activiteit */
 const SESSION_LIFETIME_SECONDS = 15 * 60;
